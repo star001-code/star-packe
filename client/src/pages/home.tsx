@@ -73,6 +73,7 @@ export default function Home() {
   } | null>(null);
 
   const RATE = 6.5;
+  const USD_TO_IQD = 1320;
 
   const { data: results, isLoading } = useQuery<Product[]>({
     queryKey: [`/api/search?q=${encodeURIComponent(searchTerm)}&limit=20`],
@@ -89,7 +90,7 @@ export default function Home() {
     setSelectedProduct(product);
     setProductName(product.description || "");
     setHsCode(product.hs_code || "");
-    setGdsYer(String((product.avg_value || 0) * 10));
+    setGdsYer(String(product.avg_value || 0));
     setSearchTerm("");
     setQuery("");
     setResult(null);
@@ -125,8 +126,8 @@ export default function Home() {
     setResult({
       requiredDuty,
       difference,
-      requiredDutyIQD: requiredDuty,
-      differenceIQD: difference,
+      requiredDutyIQD: requiredDuty * USD_TO_IQD,
+      differenceIQD: difference * USD_TO_IQD,
     });
   }, [gdsYer, weight, paidValue, toast]);
 
@@ -273,7 +274,7 @@ export default function Home() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>GDS_YER (د.ع لكل طن)</Label>
+                <Label>GDS_YER (لكل طن)</Label>
                 <Input
                   data-testid="input-gds-yer"
                   value={gdsYer}
@@ -315,7 +316,7 @@ export default function Home() {
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5" />
-                  الرسم المدفوع (د.ع)
+                  الرسم المدفوع ($)
                 </Label>
                 <Input
                   data-testid="input-paid-value"
@@ -334,7 +335,7 @@ export default function Home() {
             <div className="flex gap-2 text-xs text-muted-foreground">
               <span>نسبة الكمارك: <code className="text-foreground">{RATE}%</code></span>
               <Separator orientation="vertical" className="h-4" />
-              <span>جميع القيم بالدينار العراقي</span>
+              <span>سعر الصرف: <code className="text-foreground">{USD_TO_IQD.toLocaleString()} IQD/$</code></span>
             </div>
 
             <div className="flex gap-2">
@@ -379,18 +380,18 @@ export default function Home() {
                 </div>
                 <div className="flex items-center justify-between gap-2" data-testid="text-gds-info">
                   <span className="text-muted-foreground">GDS_YER لكل طن</span>
-                  <span style={{ fontVariant: "tabular-nums" }}>{fmt(parseFloat(gdsYer))} د.ع</span>
+                  <span style={{ fontVariant: "tabular-nums" }}>${fmt(parseFloat(gdsYer))}</span>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between gap-2" data-testid="text-required-duty">
                   <span className="text-muted-foreground">الرسم المطلوب</span>
                   <span className="font-semibold" style={{ fontVariant: "tabular-nums" }}>
-                    {fmtIQD(result.requiredDuty)} د.ع
+                    ${fmt(result.requiredDuty)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2" data-testid="text-paid-duty">
                   <span className="text-muted-foreground">الرسم المدفوع</span>
-                  <span style={{ fontVariant: "tabular-nums" }}>{fmtIQD(parseFloat(paidValue))} د.ع</span>
+                  <span style={{ fontVariant: "tabular-nums" }}>${fmt(parseFloat(paidValue))}</span>
                 </div>
                 <Separator />
                 <div
@@ -400,6 +401,9 @@ export default function Home() {
                   <span className="font-bold text-base">فرق الرسم المستحق</span>
                   <div className="text-left">
                     <p className="font-bold text-base" style={{ fontVariant: "tabular-nums" }}>
+                      ${fmt(result.difference)}
+                    </p>
+                    <p className="text-xs text-muted-foreground" style={{ fontVariant: "tabular-nums" }}>
                       {fmtIQD(result.differenceIQD)} دينار عراقي
                     </p>
                   </div>
