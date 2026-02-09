@@ -13,6 +13,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getCheckpoints(): Promise<Array<Checkpoint & { fees: CheckpointFee[] }>>;
+  getProducts(offset: number, limit: number): Promise<Product[]>;
   searchProducts(query: string, limit?: number): Promise<Product[]>;
   getProductsByHsCode(hsCode: string, unit?: string, limit?: number): Promise<Product[]>;
   getStats(): Promise<{
@@ -53,6 +54,15 @@ export class DatabaseStorage implements IStorage {
       ...cp,
       fees: allFees.filter((f) => f.checkpointId === cp.id),
     }));
+  }
+
+  async getProducts(offset: number, limit: number): Promise<Product[]> {
+    return db
+      .select()
+      .from(products)
+      .orderBy(products.hsCode)
+      .offset(offset)
+      .limit(limit);
   }
 
   async searchProducts(query: string, limit = 30): Promise<Product[]> {

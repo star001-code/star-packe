@@ -51,6 +51,35 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/products", async (req, res) => {
+    try {
+      const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
+      const offset = (page - 1) * limit;
+      const rows = await storage.getProducts(offset, limit);
+      const totalCount = await storage.getProductCount();
+      const totalPages = Math.ceil(totalCount / limit);
+      res.json({
+        products: rows.map((r) => ({
+          id: r.id,
+          hs_code: r.hsCode,
+          cst_code: r.cstCode,
+          description: r.description,
+          unit: r.unit,
+          min_value: r.minValue,
+          avg_value: r.avgValue,
+          max_value: r.maxValue,
+          currency: r.currency,
+        })),
+        page,
+        total_pages: totalPages,
+        total_count: totalCount,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/search", async (req, res) => {
     try {
       const q = (req.query.q as string || "").trim();
