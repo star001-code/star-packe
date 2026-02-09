@@ -1,0 +1,107 @@
+import fs from "fs";
+import path from "path";
+import { storage } from "./storage";
+import type { InsertProduct } from "@shared/schema";
+import { log } from "./index";
+
+function pick(d: Record<string, any>, keys: string[]): any {
+  for (const k of keys) {
+    if (d && k in d && d[k] !== null && d[k] !== "") {
+      return d[k];
+    }
+  }
+  return null;
+}
+
+function normHs(v: any): string {
+  return String(v || "").replace(/[^\d]/g, "").trim();
+}
+
+function toNum(v: any): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const s = String(v).replace(/,/g, "");
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function normalizeRow(row: Record<string, any>): InsertProduct | null {
+  const hs = normHs(pick(row, ["hs_code", "hs", "HS", "hscode", "code", "hsCode"]));
+  const desc = String(pick(row, ["description", "desc", "item_description", "name", "arabic_description", "Description"]) || "");
+  const unit = String(pick(row, ["unit", "Unit", "uom", "UOM", "measure", "unit_name"]) || "");
+  const cst = pick(row, ["cst", "CST", "cst_code", "CST_CODE", "tsc_code", "TSC_CODE", "code_cst", "رمز"]);
+  let mn = toNum(pick(row, ["min", "minimum", "min_value", "minValue", "MIN"]));
+  let mx = toNum(pick(row, ["max", "maximum", "max_value", "maxValue", "MAX"]));
+  let av = toNum(pick(row, ["avg", "average", "mean", "avg_value", "avgValue", "AVG"]));
+
+  if ((av === null || av === 0) && mn !== null && mx !== null) {
+    av = (mn + mx) / 2.0;
+  }
+
+  const currency = String(pick(row, ["currency", "Currency", "cur"]) || "USD");
+  let page = pick(row, ["page", "source_page", "pageno", "Page"]);
+  try {
+    page = page !== null ? parseInt(String(page), 10) : null;
+    if (isNaN(page)) page = null;
+  } catch {
+    page = null;
+  }
+
+  if (!hs && !desc) return null;
+
+  return {
+    hsCode: hs,
+    cstCode: cst ? String(cst) : null,
+    description: desc,
+    unit: unit || null,
+    minValue: mn,
+    avgValue: av,
+    maxValue: mx,
+    currency,
+    sourcePage: page,
+    rawJson: JSON.stringify(row),
+  };
+}
+
+export async function runSeed(): Promise<void> {
+  const productCount = await storage.getProductCount();
+  if (productCount > 0) {
+    log(`Database already seeded with ${productCount} products, skipping.`, "seed");
+    return;
+  }
+
+  log("Seeding checkpoints...", "seed");
+  await storage.seedCheckpoints();
+
+  const jsonPath = path.resolve("attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json");
+  if (!fs.existsSync(jsonPath)) {
+    log(`TSC JSON file not found at ${jsonPath}, skipping product seed.`, "seed");
+    return;
+  }
+
+  log("Reading TSC JSON...", "seed");
+  const raw = fs.readFileSync(jsonPath, "utf-8");
+  const parsed = JSON.parse(raw);
+
+  let arr: any[];
+  if (Array.isArray(parsed)) {
+    arr = parsed;
+  } else {
+    arr = parsed.rows || parsed.data || parsed.items || [];
+  }
+
+  if (!Array.isArray(arr)) {
+    log("Unsupported TSC JSON shape.", "seed");
+    return;
+  }
+
+  const rows: InsertProduct[] = [];
+  for (const item of arr) {
+    if (typeof item !== "object" || item === null) continue;
+    const normalized = normalizeRow(item);
+    if (normalized) rows.push(normalized);
+  }
+
+  log(`Inserting ${rows.length} products...`, "seed");
+  const inserted = await storage.seedProducts(rows);
+  log(`Seeded ${inserted} products successfully.`, "seed");
+}
