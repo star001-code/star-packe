@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16", "dotnet-10.0", "bash", "dotnet-7.0", "dotnet-8.0", "bun-1.0", "bun-1.1", "dotnet-9.0", "bun-1.2", "angular-node-24", "angular-node-20", "python-base-3.13", "python-3.12", "nodejs-14", "nodejs-24", "nix"]
+modules = ["nodejs-20", "web", "dotnet-10.0", "bash", "dotnet-7.0", "dotnet-8.0", "bun-1.0", "bun-1.1", "dotnet-9.0", "bun-1.2", "angular-node-24", "angular-node-20", "python-base-3.13", "python-3.12", "nodejs-14", "nodejs-24", "nix", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
