@@ -16,7 +16,6 @@ import {
   Search as SearchIcon,
   Package,
   X,
-  DollarSign,
   TrendingDown,
   TrendingUp,
   BarChart3,
@@ -24,6 +23,9 @@ import {
   FileText,
   Ruler,
   Coins,
+  ChevronRight,
+  ChevronLeft,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +39,13 @@ type Product = {
   avg_value: number | null;
   max_value: number | null;
   currency: string | null;
+};
+
+type ProductsResponse = {
+  products: Product[];
+  page: number;
+  total_pages: number;
+  total_count: number;
 };
 
 function formatNumber(n: number | null | undefined): string {
@@ -77,6 +86,7 @@ export default function SearchPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -84,6 +94,7 @@ export default function SearchPage() {
       if (debounceTimer) clearTimeout(debounceTimer);
       const timer = setTimeout(() => {
         setDebouncedQuery(value.trim());
+        setPage(1);
       }, 400);
       setDebounceTimer(timer);
     },
@@ -94,14 +105,74 @@ export default function SearchPage() {
     setQuery("");
     setDebouncedQuery("");
     setSelectedProduct(null);
+    setPage(1);
     if (debounceTimer) clearTimeout(debounceTimer);
   };
 
-  const { data: results, isLoading, isFetching } = useQuery<Product[]>({
+  const isSearching = debouncedQuery.length >= 2;
+
+  const { data: searchResults, isLoading: searchLoading } = useQuery<Product[]>({
     queryKey: [`/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=50`],
-    enabled: debouncedQuery.length >= 2,
+    enabled: isSearching,
     staleTime: 30000,
   });
+
+  const { data: browseData, isLoading: browseLoading } = useQuery<ProductsResponse>({
+    queryKey: [`/api/products?page=${page}&limit=50`],
+    enabled: !isSearching,
+    staleTime: 60000,
+  });
+
+  const displayProducts = isSearching ? (searchResults || []) : (browseData?.products || []);
+  const isLoading = isSearching ? searchLoading : browseLoading;
+  const totalPages = browseData?.total_pages || 1;
+  const totalCount = browseData?.total_count || 0;
+
+  const renderTable = (products: Product[]) => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-right">رمز HS</TableHead>
+            <TableHead className="text-right">الوصف</TableHead>
+            <TableHead className="text-right">الوحدة</TableHead>
+            <TableHead className="text-right">أدنى</TableHead>
+            <TableHead className="text-right">متوسط</TableHead>
+            <TableHead className="text-right">أقصى</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow
+              key={product.id}
+              className="cursor-pointer"
+              onClick={() => setSelectedProduct(product)}
+              data-testid={`row-product-${product.id}`}
+            >
+              <TableCell className="font-mono text-sm whitespace-nowrap">
+                {product.hs_code}
+              </TableCell>
+              <TableCell className="max-w-xs truncate text-sm">
+                {product.description || "-"}
+              </TableCell>
+              <TableCell className="text-sm whitespace-nowrap">
+                {product.unit || "-"}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap">
+                {formatNumber(product.min_value)}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap">
+                {formatNumber(product.avg_value)}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap">
+                {formatNumber(product.max_value)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -110,7 +181,7 @@ export default function SearchPage() {
           المنتجات
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          ابحث عن منتج برمز HS أو الوصف لمعرفة قيمته الاستدلالية
+          تصفح المنتجات أو ابحث برمز HS أو الوصف لمعرفة القيمة الاستدلالية
         </p>
       </div>
 
@@ -138,27 +209,6 @@ export default function SearchPage() {
 
       {debouncedQuery.length > 0 && debouncedQuery.length < 2 && (
         <p className="text-sm text-muted-foreground">ادخل حرفين على الأقل للبحث</p>
-      )}
-
-      {isLoading && debouncedQuery.length >= 2 && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {results && results.length === 0 && !isLoading && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground" data-testid="text-no-results">
-              لا توجد نتائج لـ "{debouncedQuery}"
-            </p>
-          </CardContent>
-        </Card>
       )}
 
       {selectedProduct && (
@@ -236,61 +286,69 @@ export default function SearchPage() {
         </Card>
       )}
 
-      {results && results.length > 0 && (
+      {isLoading && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && displayProducts.length === 0 && isSearching && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground" data-testid="text-no-results">
+              لا توجد نتائج لـ "{debouncedQuery}"
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && displayProducts.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <SearchIcon className="h-4 w-4" />
-              نتائج البحث
-              <Badge variant="secondary">{results.length}</Badge>
+              <Package className="h-4 w-4" />
+              {isSearching ? "نتائج البحث" : "جدول المنتجات"}
+              <Badge variant="secondary">
+                {isSearching ? displayProducts.length : totalCount.toLocaleString()}
+              </Badge>
             </CardTitle>
-            {isFetching && <Skeleton className="h-4 w-16" />}
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">رمز HS</TableHead>
-                    <TableHead className="text-right">الوصف</TableHead>
-                    <TableHead className="text-right">الوحدة</TableHead>
-                    <TableHead className="text-right">أدنى</TableHead>
-                    <TableHead className="text-right">متوسط</TableHead>
-                    <TableHead className="text-right">أقصى</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((product) => (
-                    <TableRow
-                      key={product.id}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedProduct(product)}
-                      data-testid={`row-product-${product.id}`}
-                    >
-                      <TableCell className="font-mono text-sm whitespace-nowrap">
-                        {product.hs_code}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm">
-                        {product.description || "-"}
-                      </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {product.unit || "-"}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono whitespace-nowrap">
-                        {formatNumber(product.min_value)}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono whitespace-nowrap">
-                        {formatNumber(product.avg_value)}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono whitespace-nowrap">
-                        {formatNumber(product.max_value)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            {renderTable(displayProducts)}
           </CardContent>
+
+          {!isSearching && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 p-3 border-t">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                data-testid="button-prev-page"
+              >
+                <ChevronRight className="h-4 w-4" />
+                السابق
+              </Button>
+              <span className="text-sm text-muted-foreground" data-testid="text-page-info">
+                صفحة {page} من {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                data-testid="button-next-page"
+              >
+                التالي
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </Card>
       )}
     </div>
