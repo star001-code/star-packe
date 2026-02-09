@@ -87,7 +87,7 @@ function SearchSection({
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: results, isLoading } = useQuery<Product[]>({
-    queryKey: ["/api/search", `q=${encodeURIComponent(searchTerm)}&limit=30`],
+    queryKey: [`/api/search?q=${encodeURIComponent(searchTerm)}&limit=30`],
     enabled: searchTerm.length >= 2,
   });
 
