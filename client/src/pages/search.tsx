@@ -12,7 +12,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search as SearchIcon, Package, ArrowUpDown } from "lucide-react";
+import {
+  Search as SearchIcon,
+  Package,
+  X,
+  DollarSign,
+  TrendingDown,
+  TrendingUp,
+  BarChart3,
+  Hash,
+  FileText,
+  Ruler,
+  Coins,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Product = {
@@ -30,6 +42,34 @@ type Product = {
 function formatNumber(n: number | null | undefined): string {
   if (n === null || n === undefined) return "-";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function ValueCard({
+  label,
+  value,
+  icon: Icon,
+  variant,
+}: {
+  label: string;
+  value: number | null | undefined;
+  icon: typeof DollarSign;
+  variant: "min" | "avg" | "max";
+}) {
+  const colors = {
+    min: "text-blue-400",
+    avg: "text-emerald-400",
+    max: "text-amber-400",
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1 p-3 rounded-md bg-muted/50" data-testid={`value-card-${variant}`}>
+      <Icon className={`h-5 w-5 ${colors[variant]}`} />
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-lg font-bold font-mono">
+        {formatNumber(value)}
+      </span>
+    </div>
+  );
 }
 
 export default function SearchPage() {
@@ -50,6 +90,13 @@ export default function SearchPage() {
     [debounceTimer],
   );
 
+  const clearSearch = () => {
+    setQuery("");
+    setDebouncedQuery("");
+    setSelectedProduct(null);
+    if (debounceTimer) clearTimeout(debounceTimer);
+  };
+
   const { data: results, isLoading, isFetching } = useQuery<Product[]>({
     queryKey: ["/api/search", `?q=${encodeURIComponent(debouncedQuery)}&limit=50`],
     enabled: debouncedQuery.length >= 2,
@@ -59,27 +106,38 @@ export default function SearchPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div>
-        <h1 className="text-2xl font-bold" data-testid="text-search-title">
-          بحث المنتجات
+        <h1 className="text-2xl font-bold" data-testid="text-page-title">
+          المنتجات
         </h1>
-        <p className="text-muted-foreground mt-1">
-          ابحث برمز HS أو وصف المنتج
+        <p className="text-muted-foreground mt-1 text-sm">
+          ابحث عن منتج برمز HS أو الوصف لمعرفة قيمته الاستدلالية
         </p>
       </div>
 
       <div className="relative">
-        <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           data-testid="input-search"
           placeholder="ابحث برمز HS (مثال: 87032390) أو وصف المنتج..."
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          className="pr-10"
+          className="pr-10 pl-10"
         />
+        {query && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7"
+            onClick={clearSearch}
+            data-testid="button-clear-search"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       {debouncedQuery.length > 0 && debouncedQuery.length < 2 && (
-        <p className="text-sm text-muted-foreground">أدخل حرفين على الأقل للبحث</p>
+        <p className="text-sm text-muted-foreground">ادخل حرفين على الأقل للبحث</p>
       )}
 
       {isLoading && debouncedQuery.length >= 2 && (
@@ -103,12 +161,87 @@ export default function SearchPage() {
         </Card>
       )}
 
+      {selectedProduct && (
+        <Card data-testid="card-product-detail">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              تفاصيل المنتج
+            </CardTitle>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setSelectedProduct(null)}
+              data-testid="button-close-detail"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2">
+                <Hash className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs text-muted-foreground">رمز HS</span>
+                  <p className="font-mono font-bold text-lg" data-testid="text-detail-hs">
+                    {selectedProduct.hs_code}
+                  </p>
+                </div>
+              </div>
+              {selectedProduct.cst_code && (
+                <div className="flex items-start gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-xs text-muted-foreground">رمز CST</span>
+                    <p className="font-mono" data-testid="text-detail-cst">{selectedProduct.cst_code}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-2 sm:col-span-2">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs text-muted-foreground">الوصف</span>
+                  <p className="mt-0.5" data-testid="text-detail-desc">
+                    {selectedProduct.description || "-"}
+                  </p>
+                </div>
+              </div>
+              {selectedProduct.unit && (
+                <div className="flex items-start gap-2">
+                  <Ruler className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-xs text-muted-foreground">الوحدة</span>
+                    <p>{selectedProduct.unit}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-2">
+                <Coins className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs text-muted-foreground">العملة</span>
+                  <p>{selectedProduct.currency || "USD"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">القيم الاستدلالية ({selectedProduct.currency || "USD"})</p>
+              <div className="grid grid-cols-3 gap-3">
+                <ValueCard label="أدنى قيمة" value={selectedProduct.min_value} icon={TrendingDown} variant="min" />
+                <ValueCard label="متوسط القيمة" value={selectedProduct.avg_value} icon={BarChart3} variant="avg" />
+                <ValueCard label="أقصى قيمة" value={selectedProduct.max_value} icon={TrendingUp} variant="max" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {results && results.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4" />
-              النتائج
+              <SearchIcon className="h-4 w-4" />
+              نتائج البحث
               <Badge variant="secondary">{results.length}</Badge>
             </CardTitle>
             {isFetching && <Skeleton className="h-4 w-16" />}
@@ -156,68 +289,6 @@ export default function SearchPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {selectedProduct && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">تفاصيل المنتج</CardTitle>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedProduct(null)}
-              data-testid="button-close-detail"
-            >
-              إغلاق
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">رمز HS:</span>
-                <p className="font-mono font-bold text-lg mt-1" data-testid="text-detail-hs">
-                  {selectedProduct.hs_code}
-                </p>
-              </div>
-              {selectedProduct.cst_code && (
-                <div>
-                  <span className="text-muted-foreground">رمز CST:</span>
-                  <p className="font-mono mt-1">{selectedProduct.cst_code}</p>
-                </div>
-              )}
-              <div className="sm:col-span-2">
-                <span className="text-muted-foreground">الوصف:</span>
-                <p className="mt-1" data-testid="text-detail-desc">
-                  {selectedProduct.description || "-"}
-                </p>
-              </div>
-              {selectedProduct.unit && (
-                <div>
-                  <span className="text-muted-foreground">الوحدة:</span>
-                  <p className="mt-1">{selectedProduct.unit}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-muted-foreground">العملة:</span>
-                <p className="mt-1">{selectedProduct.currency || "USD"}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-muted-foreground">القيم الاستدلالية:</span>
-                <div className="flex flex-wrap gap-3 mt-2">
-                  <Badge variant="outline" className="font-mono" data-testid="badge-min-value">
-                    أدنى: {formatNumber(selectedProduct.min_value)}
-                  </Badge>
-                  <Badge variant="secondary" className="font-mono" data-testid="badge-avg-value">
-                    متوسط: {formatNumber(selectedProduct.avg_value)}
-                  </Badge>
-                  <Badge variant="outline" className="font-mono" data-testid="badge-max-value">
-                    أقصى: {formatNumber(selectedProduct.max_value)}
-                  </Badge>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
