@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "المنتجات", url: "/search", icon: Package },
+  { title: "الحاسبة", url: "/calculator", icon: Calculator },
   { title: "حول النظام", url: "/about", icon: Info },
 ];
 

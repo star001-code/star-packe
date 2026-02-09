@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Login from "@/pages/login";
 import About from "@/pages/about";
 import SearchPage from "@/pages/search";
+import CalculatorPage from "@/pages/calculator";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/about" component={About} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/calculator" component={CalculatorPage} />
       <Route component={NotFound} />
     </Switch>
   );
