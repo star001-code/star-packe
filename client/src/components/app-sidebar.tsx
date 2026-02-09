@@ -11,12 +11,12 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Search, Info, LogIn, LogOut, Calculator } from "lucide-react";
+import { Package, Info, LogIn, LogOut, Calculator } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
-  { title: "بحث المنتجات", url: "/search", icon: Search },
+  { title: "المنتجات", url: "/search", icon: Package },
   { title: "حول النظام", url: "/about", icon: Info },
 ];
 
