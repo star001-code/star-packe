@@ -64,8 +64,8 @@ function normalizeRow(row: Record<string, any>): InsertProduct | null {
 
 export async function runSeed(): Promise<void> {
   const productCount = await storage.getProductCount();
-  if (productCount > 0) {
-    log(`Database already seeded with ${productCount} products, skipping.`, "seed");
+  if (productCount > 500) {
+    log(`Database already has ${productCount} products, skipping seed.`, "seed");
     return;
   }
 

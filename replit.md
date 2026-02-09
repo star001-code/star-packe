@@ -46,7 +46,7 @@ The frontend is a single-page app with one main page (`Home`) that contains sear
   - `products` — product/tariff data (HS code, CST code, description, unit, min/avg/max values, currency, source page)
   - Products table has indexes on `hs_code` and uses text search on `description`
 - **Migrations**: Drizzle Kit with `drizzle-kit push` command (`npm run db:push`)
-- **Seeding**: `server/seed.ts` loads checkpoint data and product data from JSON files (particularly `attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json` with ~992 product rows)
+- **Seeding**: `server/seed.ts` loads checkpoint data and product data from JSON files (particularly `attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json`). Additional products were imported from the full TSC PDF (`attached_assets/TSC_2025-10-13_*.pdf`), bringing the total to ~9,434 product rows
 
 ### Build Process
 - **Development**: `npm run dev` runs tsx with the Express server + Vite middleware
