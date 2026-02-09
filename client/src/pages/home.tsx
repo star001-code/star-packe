@@ -15,7 +15,6 @@ import {
   BarChart3,
   Weight,
   DollarSign,
-  FileText,
 } from "lucide-react";
 
 type Product = {
@@ -57,8 +56,6 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productName, setProductName] = useState("");
   const [hsCode, setHsCode] = useState("");
   const [gdsYer, setGdsYer] = useState("");
 
@@ -87,8 +84,6 @@ export default function Home() {
   }, [query]);
 
   const handleSelectProduct = useCallback((product: Product) => {
-    setSelectedProduct(product);
-    setProductName(product.description || "");
     setHsCode(product.hs_code || "");
     setGdsYer(String(product.avg_value || 0));
     setSearchTerm("");
@@ -132,8 +127,6 @@ export default function Home() {
   }, [gdsYer, weight, paidValue, toast]);
 
   const handleReset = useCallback(() => {
-    setSelectedProduct(null);
-    setProductName("");
     setHsCode("");
     setGdsYer("");
     setWeight("");
@@ -219,12 +212,6 @@ export default function Home() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm leading-relaxed">{r.description || "—"}</p>
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground" style={{ fontVariant: "tabular-nums" }}>
-                            <span>أدنى: <code className="text-foreground">{fmt(r.min_value)}</code></span>
-                            <span>متوسط: <code className="text-foreground">{fmt(r.avg_value)}</code></span>
-                            <span>أعلى: <code className="text-foreground">{fmt(r.max_value)}</code></span>
-                          </div>
                         </div>
                         <Button
                           variant="ghost"
@@ -241,49 +228,6 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="w-5 h-5 text-primary" />
-              بيانات المنتج
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>اسم المنتج</Label>
-              <Input
-                data-testid="input-product-name"
-                value={productName}
-                readOnly
-                className="bg-muted/50"
-                placeholder="اختر منتج من نتائج البحث"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>HS Code</Label>
-                <Input
-                  data-testid="input-hs-code"
-                  value={hsCode}
-                  readOnly
-                  className="bg-muted/50"
-                  placeholder="—"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>GDS_YER (لكل طن)</Label>
-                <Input
-                  data-testid="input-gds-yer"
-                  value={gdsYer}
-                  readOnly
-                  className="bg-muted/50"
-                  placeholder="—"
-                />
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -370,17 +314,9 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-2" data-testid="text-product-info">
-                  <span className="text-muted-foreground">المنتج</span>
-                  <span className="font-medium truncate max-w-[60%] text-left">{productName || hsCode}</span>
-                </div>
                 <div className="flex items-center justify-between gap-2" data-testid="text-weight-info">
                   <span className="text-muted-foreground">الوزن</span>
                   <span style={{ fontVariant: "tabular-nums" }}>{fmt(parseFloat(weight))} طن</span>
-                </div>
-                <div className="flex items-center justify-between gap-2" data-testid="text-gds-info">
-                  <span className="text-muted-foreground">GDS_YER لكل طن</span>
-                  <span style={{ fontVariant: "tabular-nums" }}>${fmt(parseFloat(gdsYer))}</span>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between gap-2" data-testid="text-required-duty">
