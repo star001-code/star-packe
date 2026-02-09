@@ -72,9 +72,11 @@ export async function runSeed(): Promise<void> {
   log("Seeding checkpoints...", "seed");
   await storage.seedCheckpoints();
 
-  const jsonPath = path.resolve("attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json");
+  const fullPath = path.resolve("attached_assets/TSC_2025-10-13_full.json");
+  const legacyPath = path.resolve("attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json");
+  const jsonPath = fs.existsSync(fullPath) ? fullPath : legacyPath;
   if (!fs.existsSync(jsonPath)) {
-    log(`TSC JSON file not found at ${jsonPath}, skipping product seed.`, "seed");
+    log(`TSC JSON file not found, skipping product seed.`, "seed");
     return;
   }
 

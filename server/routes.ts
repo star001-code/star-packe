@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 const calcItemSchema = z.object({
   hs_code: z.string(),
@@ -192,6 +193,71 @@ export async function registerRoutes(
       });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  const authSchema = z.object({
+    username: z.string().min(2),
+    password: z.string().min(4),
+  });
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const parsed = authSchema.parse(req.body);
+      const existing = await storage.getUserByUsername(parsed.username);
+      if (existing) {
+        return res.status(409).json({ error: "اسم المستخدم موجود مسبقاً" });
+      }
+      const hashed = await bcrypt.hash(parsed.password, 10);
+      const user = await storage.createUser({ username: parsed.username, password: hashed });
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      res.json({ id: user.id, username: user.username });
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ error: "اسم المستخدم وكلمة المرور مطلوبة" });
+      }
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const parsed = authSchema.parse(req.body);
+      const user = await storage.getUserByUsername(parsed.username);
+      if (!user) {
+        return res.status(401).json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+      }
+      const valid = await bcrypt.compare(parsed.password, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+      }
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      res.json({ id: user.id, username: user.username });
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ error: "اسم المستخدم وكلمة المرور مطلوبة" });
+      }
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "فشل تسجيل الخروج" });
+      }
+      res.clearCookie("connect.sid");
+      res.json({ ok: true });
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session.userId) {
+      res.json({ id: req.session.userId, username: req.session.username });
+    } else {
+      res.status(401).json({ error: "غير مسجل" });
     }
   });
 

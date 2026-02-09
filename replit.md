@@ -1,12 +1,17 @@
 # Overview
 
-This is an **Iraqi Internal Customs Calculator** (حاسبة كمركية عراقية) — a full-stack web application for calculating customs duties and fees at Iraqi checkpoints. Users can search a product database by HS code or description, add items to a calculation, select a checkpoint, and compute total customs fees including duty, TSC (tariff schedule) values, and checkpoint-specific fees. The app is built as an Arabic RTL interface with dark mode enabled by default.
-
-The project was ported from a Python FastAPI + SQLite prototype (still present in `attached_assets/iraq_customs_extracted/`) to a Node.js/Express + PostgreSQL + React stack.
+This is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي) — a full-stack web application for calculating customs duties and fees at Iraqi checkpoints. Users can search a product database by HS code or description, view product valuation data, and calculate duty differences. The app is built as an Arabic RTL interface with dark mode enabled by default.
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+Preferred communication style: Simple, everyday language (Arabic).
+
+## Recent Changes
+
+- **Feb 2026**: Built multi-page app with login, about, and product search pages
+- **Feb 2026**: Added session-based authentication (express-session + bcryptjs + connect-pg-simple)
+- **Feb 2026**: Re-extracted TSC PDF data achieving 10,488 products (from 9,434 previously)
+- **Feb 2026**: Added right-side sidebar navigation using shadcn Sidebar component
 
 ## System Architecture
 
@@ -15,70 +20,78 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter (lightweight client-side router)
 - **State/Data Fetching**: TanStack React Query v5
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming, dark mode forced on via `document.documentElement.classList.add("dark")`
+- **Styling**: Tailwind CSS with CSS variables for theming, dark mode forced on
 - **Build Tool**: Vite with React plugin
 - **Language/Direction**: Arabic (RTL), set via `<html lang="ar" dir="rtl">`
 - **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
 
-The frontend is a single-page app with one main page (`Home`) that contains search, item management, settings (checkpoint selection, FX rate), and calculation results. The `apiRequest` helper in `client/src/lib/queryClient.ts` handles all API calls.
+### Pages
+- `/login` — Login/Register page with username/password form (shadcn Form + Zod validation)
+- `/search` — Product search by HS code or description, results table with product details
+- `/about` — System information, database stats, calculation methodology
+- `/` — Redirects to `/search`
+- Navigation via right-side Sidebar (AppSidebar component)
 
 ### Backend
 - **Framework**: Express 5 (TypeScript, ESM)
 - **Runtime**: Node.js via tsx in development, esbuild-bundled CJS in production
+- **Authentication**: express-session with connect-pg-simple store, bcryptjs for password hashing
 - **API Pattern**: REST endpoints under `/api/` prefix
 - **Key Endpoints**:
   - `GET /api/health` — health check
   - `GET /api/checkpoints` — list checkpoints with their fees
   - `GET /api/search?q=...&limit=...` — search products by HS code or description
-  - `POST /api/calculate` — compute customs duties for a list of items at a given checkpoint
+  - `GET /api/hs/:hs_code` — get products by specific HS code
+  - `POST /api/calculate` — compute customs duties for items at a checkpoint
   - `GET /api/stats` — database statistics
-- **Request Validation**: Zod schemas for calculation requests
+  - `POST /api/auth/register` — create new user
+  - `POST /api/auth/login` — login
+  - `POST /api/auth/logout` — logout
+  - `GET /api/auth/me` — get current user session
+- **Request Validation**: Zod schemas for all request bodies
 - **Dev Server**: Vite dev server middleware served through Express (HMR via `server/vite.ts`)
-- **Production**: Static files served from `dist/public` via `server/static.ts`
 
 ### Database
-- **Database**: PostgreSQL (required, connection via `DATABASE_URL` environment variable)
+- **Database**: PostgreSQL (connection via `DATABASE_URL` environment variable)
 - **ORM**: Drizzle ORM with `drizzle-zod` for schema-to-validation integration
 - **Schema** (in `shared/schema.ts`):
-  - `users` — basic user table (id UUID, username, password)
+  - `users` — user table (id UUID, username, password hashed)
   - `checkpoints` — customs checkpoint locations (id, name)
-  - `checkpoint_fees` — fees associated with each checkpoint (code, label, amount in IQD)
-  - `products` — product/tariff data (HS code, CST code, description, unit, min/avg/max values, currency, source page)
-  - Products table has indexes on `hs_code` and uses text search on `description`
-- **Migrations**: Drizzle Kit with `drizzle-kit push` command (`npm run db:push`)
-- **Seeding**: `server/seed.ts` loads checkpoint data and product data from JSON files (particularly `attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json`). Additional products were imported from the full TSC PDF (`attached_assets/TSC_2025-10-13_*.pdf`), bringing the total to ~9,434 product rows
+  - `checkpoint_fees` — fees associated with each checkpoint
+  - `products` — product/tariff data (HS code, CST code, description, unit, min/avg/max values)
+  - `session` — express-session table (auto-created by connect-pg-simple)
+- **Seeding**: `server/seed.ts` loads product data from `attached_assets/TSC_2025-10-13_full.json` (10,488 products)
+
+### Key Files
+- `client/src/App.tsx` — Main app with SidebarProvider, routing
+- `client/src/components/app-sidebar.tsx` — Right-side navigation sidebar
+- `client/src/hooks/use-auth.ts` — Authentication hook (login/register/logout)
+- `client/src/pages/login.tsx` — Login/Register page
+- `client/src/pages/search.tsx` — Product search page
+- `client/src/pages/about.tsx` — About/Info page
+- `server/index.ts` — Express server with session middleware
+- `server/routes.ts` — All API routes including auth
+- `server/storage.ts` — Database storage interface (IStorage + DatabaseStorage)
+- `server/seed.ts` — Database seeding logic
 
 ### Build Process
 - **Development**: `npm run dev` runs tsx with the Express server + Vite middleware
-- **Production Build**: `npm run build` runs `script/build.ts` which:
-  1. Builds the client with Vite (output to `dist/public`)
-  2. Bundles the server with esbuild (output to `dist/index.cjs`), externalizing most deps except an allowlist
+- **Production Build**: `npm run build` → builds client with Vite + bundles server with esbuild
 - **Production Start**: `npm start` runs `node dist/index.cjs`
 
-### Shared Code
-The `shared/` directory contains the Drizzle schema and Zod types used by both frontend and backend, ensuring type safety across the stack.
-
 ## External Dependencies
-
-### Database
-- **PostgreSQL** — Required. Connection string must be provided via `DATABASE_URL` environment variable. Used with `pg` (node-postgres) driver and Drizzle ORM.
-- **connect-pg-simple** — Session store (listed in dependencies, may be used for future session management)
 
 ### Key NPM Packages
 - **drizzle-orm** + **drizzle-kit** — Database ORM and migration tooling
 - **express** v5 — HTTP server
+- **express-session** + **connect-pg-simple** — Session management with PostgreSQL store
+- **bcryptjs** — Password hashing
 - **zod** — Runtime validation
 - **@tanstack/react-query** — Client-side data fetching/caching
 - **wouter** — Client-side routing
 - **shadcn/ui** components (Radix UI primitives + Tailwind)
 - **lucide-react** — Icons
-- **recharts** — Charting library (available via chart component)
-- **date-fns** — Date utilities
-
-### Replit-Specific
-- `@replit/vite-plugin-runtime-error-modal` — Error overlay in development
-- `@replit/vite-plugin-cartographer` — Dev tooling (conditionally loaded)
-- `@replit/vite-plugin-dev-banner` — Dev banner (conditionally loaded)
 
 ### Reference Data
-- `attached_assets/iraq_customs_extracted/` — Contains the original Python prototype and the TSC JSON data file used for seeding the products database. This data represents Iraqi customs tariff schedule entries with HS codes, descriptions, and min/avg/max valuation data.
+- `attached_assets/TSC_2025-10-13_full.json` — 10,488 product entries extracted from TSC PDF
+- `attached_assets/iraq_customs_extracted/` — Original Python prototype and legacy data
