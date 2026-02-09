@@ -98,7 +98,7 @@ export default function SearchPage() {
   };
 
   const { data: results, isLoading, isFetching } = useQuery<Product[]>({
-    queryKey: ["/api/search", `?q=${encodeURIComponent(debouncedQuery)}&limit=50`],
+    queryKey: [`/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=50`],
     enabled: debouncedQuery.length >= 2,
     staleTime: 30000,
   });

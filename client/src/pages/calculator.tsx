@@ -1,0 +1,526 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Calculator,
+  Search,
+  Plus,
+  Trash2,
+  Receipt,
+  MapPin,
+  ArrowLeftRight,
+  Loader2,
+  Package,
+  AlertCircle,
+} from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+type Product = {
+  id: number;
+  hs_code: string;
+  cst_code: string | null;
+  description: string | null;
+  unit: string | null;
+  min_value: number | null;
+  avg_value: number | null;
+  max_value: number | null;
+  currency: string | null;
+};
+
+type Checkpoint = {
+  id: string;
+  name: string;
+  fees: { code: string; label: string; amount_iqd: number }[];
+};
+
+type CalcItem = {
+  localId: string;
+  hs_code: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  invoice_total_value: number;
+  duty_rate: number;
+  tsc_basis: "avg" | "min" | "max";
+};
+
+type CalcResult = {
+  checkpoint: { id: string; name: string };
+  fx: { from: string; to: string; rate: number };
+  fees: { items: { code: string; label: string; amount_iqd: number }[]; total_iqd: number };
+  items: {
+    hs_code: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    invoice_total_value: number;
+    invoice_unit_value: number;
+    tsc_unit_value: number;
+    valuation_unit_value: number;
+    customs_value_iqd: number;
+    duty_rate: number;
+    duty_iqd: number;
+  }[];
+  summary: { duty_iqd: number; fees_iqd: number; total_payable_iqd: number };
+};
+
+function formatIQD(n: number): string {
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function formatUSD(n: number): string {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+let idCounter = 0;
+function nextId() {
+  return `item-${++idCounter}`;
+}
+
+function ProductSearchPopup({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (product: Product) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleChange = (val: string) => {
+    setQ(val);
+    if (timer) clearTimeout(timer);
+    const t = setTimeout(() => setDebounced(val.trim()), 300);
+    setTimer(t);
+  };
+
+  const { data: results, isLoading } = useQuery<Product[]>({
+    queryKey: [`/api/search?q=${encodeURIComponent(debounced)}&limit=20`],
+    enabled: debounced.length >= 2,
+    staleTime: 30000,
+  });
+
+  return (
+    <Card data-testid="card-product-search-popup">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Search className="h-4 w-4" />
+          ابحث عن المنتج
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Input
+          data-testid="input-product-search"
+          placeholder="رمز HS أو وصف المنتج..."
+          value={q}
+          onChange={(e) => handleChange(e.target.value)}
+          autoFocus
+        />
+        {isLoading && <Skeleton className="h-8 w-full" />}
+        {results && results.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>
+        )}
+        {results && results.length > 0 && (
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {results.map((p) => (
+              <button
+                key={p.id}
+                className="w-full text-right p-2 rounded-md text-sm hover-elevate cursor-pointer"
+                onClick={() => {
+                  onSelect(p);
+                  onClose();
+                }}
+                data-testid={`btn-select-product-${p.id}`}
+              >
+                <span className="font-mono text-xs text-muted-foreground">{p.hs_code}</span>
+                <span className="mx-2">-</span>
+                <span className="truncate">{p.description || "-"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <Button size="sm" variant="ghost" onClick={onClose} className="w-full" data-testid="button-close-search-popup">
+          إلغاء
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function CalculatorPage() {
+  const { toast } = useToast();
+  const [checkpointId, setCheckpointId] = useState<string>("");
+  const [fxRate, setFxRate] = useState(1310);
+  const [items, setItems] = useState<CalcItem[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [result, setResult] = useState<CalcResult | null>(null);
+
+  const { data: checkpoints, isLoading: cpLoading } = useQuery<Checkpoint[]>({
+    queryKey: ["/api/checkpoints"],
+  });
+
+  const calcMutation = useMutation({
+    mutationFn: async (body: unknown) => {
+      const res = await apiRequest("POST", "/api/calculate", body);
+      return res.json() as Promise<CalcResult>;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+    },
+    onError: (err: Error) => {
+      let msg = err.message;
+      try {
+        const json = JSON.parse(msg.replace(/^\d+:\s*/, ""));
+        msg = json.error || msg;
+      } catch {}
+      toast({ title: "خطأ في الحساب", description: msg, variant: "destructive" });
+    },
+  });
+
+  const addProduct = (product: Product) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        localId: nextId(),
+        hs_code: product.hs_code,
+        description: product.description || "",
+        quantity: 1,
+        unit: product.unit || "",
+        invoice_total_value: 0,
+        duty_rate: 0.05,
+        tsc_basis: "avg",
+      },
+    ]);
+    setResult(null);
+  };
+
+  const updateItem = (localId: string, field: keyof CalcItem, value: string | number) => {
+    setItems((prev) =>
+      prev.map((it) =>
+        it.localId === localId ? { ...it, [field]: value } : it
+      )
+    );
+    setResult(null);
+  };
+
+  const removeItem = (localId: string) => {
+    setItems((prev) => prev.filter((it) => it.localId !== localId));
+    setResult(null);
+  };
+
+  const handleCalculate = () => {
+    if (!checkpointId) {
+      toast({ title: "اختر المنفذ", description: "يجب اختيار المنفذ الحدودي", variant: "destructive" });
+      return;
+    }
+    if (items.length === 0) {
+      toast({ title: "أضف منتج", description: "يجب إضافة منتج واحد على الأقل", variant: "destructive" });
+      return;
+    }
+
+    calcMutation.mutate({
+      checkpoint_id: checkpointId,
+      fx_rate: fxRate,
+      invoice_currency: "USD",
+      items: items.map((it) => ({
+        hs_code: it.hs_code,
+        quantity: it.quantity,
+        unit: it.unit || null,
+        invoice_total_value: it.invoice_total_value,
+        duty_rate: it.duty_rate,
+        tsc_basis: it.tsc_basis,
+      })),
+    });
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold" data-testid="text-calc-title">
+          حاسبة الرسوم الكمركية
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          اختر المنفذ وأضف المنتجات لحساب الرسوم الكمركية
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <Label className="flex items-center gap-1.5 text-sm">
+              <MapPin className="h-3.5 w-3.5" />
+              المنفذ الحدودي
+            </Label>
+            {cpLoading ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select value={checkpointId} onValueChange={setCheckpointId} data-testid="select-checkpoint">
+                <SelectTrigger data-testid="trigger-checkpoint">
+                  <SelectValue placeholder="اختر المنفذ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {checkpoints?.map((cp) => (
+                    <SelectItem key={cp.id} value={cp.id} data-testid={`option-checkpoint-${cp.id}`}>
+                      {cp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <Label className="flex items-center gap-1.5 text-sm">
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              سعر الصرف (1 USD = ? IQD)
+            </Label>
+            <Input
+              type="number"
+              value={fxRate}
+              onChange={(e) => {
+                setFxRate(parseFloat(e.target.value) || 0);
+                setResult(null);
+              }}
+              data-testid="input-fx-rate"
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            المنتجات
+            {items.length > 0 && <Badge variant="secondary">{items.length}</Badge>}
+          </CardTitle>
+          <Button size="sm" onClick={() => setShowSearch(true)} data-testid="button-add-product">
+            <Plus className="h-4 w-4" />
+            <span className="mr-1">إضافة منتج</span>
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showSearch && (
+            <ProductSearchPopup
+              onSelect={addProduct}
+              onClose={() => setShowSearch(false)}
+            />
+          )}
+
+          {items.length === 0 && !showSearch && (
+            <div className="py-6 text-center text-muted-foreground text-sm" data-testid="text-no-items">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              لم تُضف أي منتجات بعد. اضغط "إضافة منتج" للبدء.
+            </div>
+          )}
+
+          {items.map((item, idx) => (
+            <Card key={item.localId} data-testid={`card-item-${idx}`}>
+              <CardContent className="p-3 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono">{item.hs_code}</Badge>
+                      <span className="text-sm truncate">{item.description || "-"}</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeItem(item.localId)}
+                    data-testid={`button-remove-item-${idx}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">الكمية</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={item.quantity}
+                      onChange={(e) => updateItem(item.localId, "quantity", parseFloat(e.target.value) || 1)}
+                      data-testid={`input-qty-${idx}`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">قيمة الفاتورة (USD)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={item.invoice_total_value}
+                      onChange={(e) => updateItem(item.localId, "invoice_total_value", parseFloat(e.target.value) || 0)}
+                      data-testid={`input-invoice-${idx}`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">نسبة الرسم</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={item.duty_rate}
+                      onChange={(e) => updateItem(item.localId, "duty_rate", parseFloat(e.target.value) || 0)}
+                      data-testid={`input-duty-rate-${idx}`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">أساس التقييم</Label>
+                    <Select
+                      value={item.tsc_basis}
+                      onValueChange={(v) => updateItem(item.localId, "tsc_basis", v)}
+                    >
+                      <SelectTrigger data-testid={`trigger-basis-${idx}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="avg">متوسط</SelectItem>
+                        <SelectItem value="min">أدنى</SelectItem>
+                        <SelectItem value="max">أقصى</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </CardContent>
+      </Card>
+
+      {items.length > 0 && (
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={handleCalculate}
+          disabled={calcMutation.isPending}
+          data-testid="button-calculate"
+        >
+          {calcMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Calculator className="h-4 w-4" />
+          )}
+          <span className="mr-2">احسب الرسوم الكمركية</span>
+        </Button>
+      )}
+
+      {result && (
+        <Card data-testid="card-result">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              نتائج الحساب
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">المنفذ:</span>
+                <span className="font-medium">{result.checkpoint.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">سعر الصرف:</span>
+                <span className="font-mono">{result.fx.rate.toLocaleString()} IQD/USD</span>
+              </div>
+            </div>
+
+            {result.items.map((ri, idx) => (
+              <Card key={idx} data-testid={`card-result-item-${idx}`}>
+                <CardContent className="p-3 space-y-2 text-sm">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="font-mono">{ri.hs_code}</Badge>
+                    <span className="truncate">{ri.description || "-"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">الكمية:</span>
+                      <span className="font-mono mr-1">{ri.quantity} {ri.unit}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">قيمة الوحدة بالفاتورة:</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.invoice_unit_value)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">قيمة TSC للوحدة:</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.tsc_unit_value)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">القيمة المعتمدة للوحدة:</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.valuation_unit_value)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">القيمة الكمركية:</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.customs_value_iqd)} IQD</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">الرسم ({(ri.duty_rate * 100).toFixed(0)}%):</span>
+                      <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_iqd)} IQD</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {result.fees.items.length > 0 && (
+              <div className="space-y-1 text-sm">
+                <p className="text-muted-foreground text-xs">رسوم المنفذ:</p>
+                {result.fees.items.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <span>{f.label || f.code}</span>
+                    <span className="font-mono">{formatIQD(f.amount_iqd)} IQD</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t pt-3 space-y-2" data-testid="section-summary">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">إجمالي الرسوم الكمركية:</span>
+                <span className="font-mono font-bold">{formatIQD(result.summary.duty_iqd)} IQD</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">رسوم المنفذ:</span>
+                <span className="font-mono">{formatIQD(result.summary.fees_iqd)} IQD</span>
+              </div>
+              <div className="flex items-center justify-between text-base font-bold bg-muted/50 rounded-md p-3" data-testid="text-total">
+                <span>المجموع الكلي:</span>
+                <span className="font-mono text-lg">{formatIQD(result.summary.total_payable_iqd)} IQD</span>
+              </div>
+            </div>
+
+            {result.items.some((ri) => ri.tsc_unit_value > ri.invoice_unit_value) && (
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-md p-3">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>
+                  بعض المنتجات لها قيمة TSC أعلى من قيمة الفاتورة. يتم اعتماد القيمة الأعلى
+                  كأساس لحساب الرسوم الكمركية.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
