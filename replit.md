@@ -20,7 +20,10 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: TSC values converted to IQD (×1000), calculation logic compares invoice IQD vs TSC IQD
 - **Feb 2026**: Added Iraqi Customs logo to sidebar header and home page
 - **Feb 2026**: Added goods category system with 19 predefined Iraqi tariff categories (food 5%, industrial 15%, consumer 30%, luxury 40-80%, tobacco/alcohol 100-150%)
-- **Feb 2026**: Added additional taxes: sales tax (5%), municipal tax (2%), reconstruction tax (3% luxury only)
+- **Feb 2026**: Added additional taxes: sales tax (5%), municipal tax (2%) on (customs_value + duty)
+- **Feb 2026**: Added product protection rate (p) per item: duty = V × (t + p)
+- **Feb 2026**: Added "previously paid" input and "difference due" calculation (total - paid)
+- **Feb 2026**: Removed reconstruction tax (was 3% luxury only)
 - **Feb 2026**: Updated checkpoint data with 6 fee types each (SONAR, XRAY, WEIGHING, STAMP, PERMIT, DOCS)
 - **Feb 2026**: Checkpoints now re-seed on every startup to keep data fresh
 

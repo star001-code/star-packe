@@ -10,6 +10,7 @@ const calcItemSchema = z.object({
   unit: z.string().optional().nullable(),
   invoice_total_value: z.number().min(0),
   duty_rate: z.number().min(0),
+  protection_rate: z.number().min(0).default(0),
   tsc_basis: z.enum(["avg", "min", "max"]).default("avg"),
   goods_category: z.string().optional().default("consumer"),
 });
@@ -19,6 +20,7 @@ const calcRequestSchema = z.object({
   fx_rate: z.number().positive().default(1320),
   invoice_currency: z.string().default("USD"),
   items: z.array(calcItemSchema).min(1),
+  paid_amount: z.number().min(0).default(0),
 });
 
 function normHs(v: string): string {
@@ -146,8 +148,6 @@ export async function registerRoutes(
       let dutySum = 0;
       let salesTaxSum = 0;
       let municipalTaxSum = 0;
-      let reconstructionTaxSum = 0;
-      const luxuryCategories = ["luxury_goods", "jewelry", "luxury_vehicles"];
 
       for (const it of parsed.items) {
         const hs = normHs(it.hs_code);
@@ -179,17 +179,13 @@ export async function registerRoutes(
         const tscUnitIqd = tscUnit;
         const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
         const customsValueIqd = valuationUnitIqd * it.quantity;
-        const dutyIqd = customsValueIqd * it.duty_rate;
+        const dutyIqd = customsValueIqd * (it.duty_rate + it.protection_rate);
         const salesTaxIqd = customsValueIqd * 0.05;
-        const municipalTaxIqd = customsValueIqd * 0.02;
-        const reconstructionTaxIqd = luxuryCategories.includes(it.goods_category)
-          ? customsValueIqd * 0.03
-          : 0;
+        const municipalTaxIqd = (customsValueIqd + dutyIqd) * 0.02;
 
         dutySum += dutyIqd;
         salesTaxSum += salesTaxIqd;
         municipalTaxSum += municipalTaxIqd;
-        reconstructionTaxSum += reconstructionTaxIqd;
 
         itemsOut.push({
           hs_code: hs,
@@ -204,13 +200,16 @@ export async function registerRoutes(
           valuation_unit_iqd: valuationUnitIqd,
           customs_value_iqd: customsValueIqd,
           duty_rate: it.duty_rate,
+          protection_rate: it.protection_rate,
           duty_iqd: dutyIqd,
           sales_tax_iqd: salesTaxIqd,
           municipal_tax_iqd: municipalTaxIqd,
-          reconstruction_tax_iqd: reconstructionTaxIqd,
           goods_category: it.goods_category,
         });
       }
+
+      const totalPayable = dutySum + salesTaxSum + municipalTaxSum + feesTotal;
+      const paidAmount = parsed.paid_amount || 0;
 
       res.json({
         checkpoint: { id: cp.id, name: cp.name },
@@ -224,9 +223,10 @@ export async function registerRoutes(
           duty_iqd: dutySum,
           sales_tax_iqd: salesTaxSum,
           municipal_tax_iqd: municipalTaxSum,
-          reconstruction_tax_iqd: reconstructionTaxSum,
           fees_iqd: feesTotal,
-          total_payable_iqd: dutySum + salesTaxSum + municipalTaxSum + reconstructionTaxSum + feesTotal,
+          total_payable_iqd: totalPayable,
+          paid_amount_iqd: paidAmount,
+          difference_iqd: totalPayable - paidAmount,
         },
       });
     } catch (e: any) {

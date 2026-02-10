@@ -78,6 +78,7 @@ type CalcItem = {
   unit: string;
   invoice_total_value: number;
   duty_rate: number;
+  protection_rate: number;
   category: string;
   tsc_basis: "avg" | "min" | "max";
   tsc_min: number | null;
@@ -102,19 +103,20 @@ type CalcResult = {
     valuation_unit_iqd: number;
     customs_value_iqd: number;
     duty_rate: number;
+    protection_rate: number;
     duty_iqd: number;
     sales_tax_iqd: number;
     municipal_tax_iqd: number;
-    reconstruction_tax_iqd: number;
     goods_category: string;
   }[];
   summary: {
     duty_iqd: number;
     sales_tax_iqd: number;
     municipal_tax_iqd: number;
-    reconstruction_tax_iqd: number;
     fees_iqd: number;
     total_payable_iqd: number;
+    paid_amount_iqd: number;
+    difference_iqd: number;
   };
 };
 
@@ -209,6 +211,7 @@ export default function CalculatorPage() {
   const [items, setItems] = useState<CalcItem[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
+  const [paidAmount, setPaidAmount] = useState(0);
   const prefilled = useRef(false);
 
   const fetchTscValues = async (hsCode: string) => {
@@ -246,6 +249,7 @@ export default function CalculatorPage() {
           unit: params.get("unit") || "",
           invoice_total_value: 0,
           duty_rate: 0.30,
+          protection_rate: 0,
           category: "consumer",
           tsc_basis: "avg",
           tsc_min: null,
@@ -291,6 +295,7 @@ export default function CalculatorPage() {
         unit: product.unit || "",
         invoice_total_value: 0,
         duty_rate: 0.30,
+        protection_rate: 0,
         category: "consumer",
         tsc_basis: "avg",
         tsc_min: product.min_value,
@@ -341,12 +346,14 @@ export default function CalculatorPage() {
       checkpoint_id: checkpointId,
       fx_rate: fxRate,
       invoice_currency: "USD",
+      paid_amount: paidAmount,
       items: items.map((it) => ({
         hs_code: it.hs_code,
         quantity: it.quantity,
         unit: it.unit || null,
         invoice_total_value: it.invoice_total_value,
         duty_rate: it.duty_rate,
+        protection_rate: it.protection_rate,
         tsc_basis: it.tsc_basis,
         goods_category: it.category,
       })),
@@ -364,7 +371,7 @@ export default function CalculatorPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 space-y-2">
             <Label className="flex items-center gap-1.5 text-sm">
@@ -404,6 +411,25 @@ export default function CalculatorPage() {
                 setResult(null);
               }}
               data-testid="input-fx-rate"
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <Label className="flex items-center gap-1.5 text-sm">
+              <Receipt className="h-3.5 w-3.5" />
+              المبلغ المدفوع سابقاً (IQD)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              value={paidAmount}
+              onChange={(e) => {
+                setPaidAmount(parseFloat(e.target.value) || 0);
+                setResult(null);
+              }}
+              data-testid="input-paid-amount"
             />
           </CardContent>
         </Card>
@@ -471,7 +497,7 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">الكمية</Label>
                     <Input
@@ -510,6 +536,18 @@ export default function CalculatorPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">نسبة حماية المنتج</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={0.01}
+                      value={item.protection_rate}
+                      onChange={(e) => updateItem(item.localId, "protection_rate", parseFloat(e.target.value) || 0)}
+                      data-testid={`input-protection-rate-${idx}`}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">أساس التقييم</Label>
@@ -592,9 +630,6 @@ export default function CalculatorPage() {
                     lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} د.ع`);
                     lines.push(`  ضريبة مبيعات (5%): ${formatIQD(ri.sales_tax_iqd)} د.ع`);
                     lines.push(`  ضريبة بلدية (2%): ${formatIQD(ri.municipal_tax_iqd)} د.ع`);
-                    if (ri.reconstruction_tax_iqd > 0) {
-                      lines.push(`  ضريبة إعمار (3%): ${formatIQD(ri.reconstruction_tax_iqd)} د.ع`);
-                    }
                   });
                   lines.push(`---`);
                   if (result.fees.items.length > 0) {
@@ -605,11 +640,12 @@ export default function CalculatorPage() {
                   lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} د.ع`);
                   lines.push(`ضريبة مبيعات: ${formatIQD(result.summary.sales_tax_iqd)} د.ع`);
                   lines.push(`ضريبة بلدية: ${formatIQD(result.summary.municipal_tax_iqd)} د.ع`);
-                  if (result.summary.reconstruction_tax_iqd > 0) {
-                    lines.push(`ضريبة إعمار: ${formatIQD(result.summary.reconstruction_tax_iqd)} د.ع`);
-                  }
                   lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
                   lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
+                  if (result.summary.paid_amount_iqd > 0) {
+                    lines.push(`المبلغ المدفوع: ${formatIQD(result.summary.paid_amount_iqd)} د.ع`);
+                    lines.push(`الفرق المطلوب: ${formatIQD(result.summary.difference_iqd)} د.ع`);
+                  }
                   try {
                     await navigator.clipboard.writeText(lines.join("\n"));
                     toast({ title: "تم النسخ", description: "تم نسخ ملخص الحساب" });
@@ -628,6 +664,7 @@ export default function CalculatorPage() {
                 onClick={() => {
                   setResult(null);
                   setItems([]);
+                  setPaidAmount(0);
                 }}
                 data-testid="button-reset"
               >
@@ -679,9 +716,19 @@ export default function CalculatorPage() {
                       <span className="font-mono mr-1">{formatIQD(ri.customs_value_iqd)} د.ع</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">الرسم ({(ri.duty_rate * 100).toFixed(0)}%):</span>
+                      <span className="text-muted-foreground">
+                        {ri.protection_rate > 0
+                          ? `الرسم (${((ri.duty_rate + ri.protection_rate) * 100).toFixed(0)}% = ${(ri.duty_rate * 100).toFixed(0)}%+${(ri.protection_rate * 100).toFixed(0)}%):`
+                          : `الرسم (${(ri.duty_rate * 100).toFixed(0)}%):`}
+                      </span>
                       <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_iqd)} د.ع</span>
                     </div>
+                    {ri.protection_rate > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">نسبة الحماية:</span>
+                        <span className="font-mono mr-1">{(ri.protection_rate * 100).toFixed(0)}%</span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-muted-foreground">ضريبة مبيعات (5%):</span>
                       <span className="font-mono mr-1">{formatIQD(ri.sales_tax_iqd)} د.ع</span>
@@ -690,12 +737,6 @@ export default function CalculatorPage() {
                       <span className="text-muted-foreground">ضريبة بلدية (2%):</span>
                       <span className="font-mono mr-1">{formatIQD(ri.municipal_tax_iqd)} د.ع</span>
                     </div>
-                    {ri.reconstruction_tax_iqd > 0 && (
-                      <div>
-                        <span className="text-muted-foreground">ضريبة إعمار (3%):</span>
-                        <span className="font-mono mr-1">{formatIQD(ri.reconstruction_tax_iqd)} د.ع</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -726,12 +767,6 @@ export default function CalculatorPage() {
                 <span className="text-muted-foreground">ضريبة البلدية:</span>
                 <span className="font-mono">{formatIQD(result.summary.municipal_tax_iqd)} د.ع</span>
               </div>
-              {result.summary.reconstruction_tax_iqd > 0 && (
-                <div className="flex items-center justify-between text-sm" data-testid="text-reconstruction-tax">
-                  <span className="text-muted-foreground">ضريبة الإعمار:</span>
-                  <span className="font-mono">{formatIQD(result.summary.reconstruction_tax_iqd)} د.ع</span>
-                </div>
-              )}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">رسوم المنفذ:</span>
                 <span className="font-mono">{formatIQD(result.summary.fees_iqd)} د.ع</span>
@@ -740,6 +775,18 @@ export default function CalculatorPage() {
                 <span>المجموع الكلي:</span>
                 <span className="font-mono text-lg">{formatIQD(result.summary.total_payable_iqd)} د.ع</span>
               </div>
+              {result.summary.paid_amount_iqd > 0 && (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">المبلغ المدفوع سابقاً:</span>
+                    <span className="font-mono">{formatIQD(result.summary.paid_amount_iqd)} د.ع</span>
+                  </div>
+                  <div className="flex items-center justify-between text-base font-bold bg-primary/10 rounded-md p-3" data-testid="text-difference">
+                    <span>الفرق المطلوب:</span>
+                    <span className="font-mono text-lg">{formatIQD(result.summary.difference_iqd)} د.ع</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {result.items.some((ri) => ri.tsc_unit_value_iqd > ri.invoice_unit_iqd) && (
