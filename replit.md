@@ -30,6 +30,12 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Manifest page: drag-and-drop image upload, extracts HS codes/descriptions/quantities/values from customs documents
 - **Feb 2026**: Manifest extracted items can be selected and sent to calculator page via URL parameter
 - **Feb 2026**: Added paid amount input in USD (converted to IQD), Ibrahim Khalil checkpoint
+- **Feb 2026**: Manifest extraction now captures checkpoint name, duty paid, tax paid, total value from documents
+- **Feb 2026**: Manifest → Calculator auto-fills checkpoint (Arabic name mapping), paid amount, and all items
+- **Feb 2026**: Added per-item duty difference: each product shows its own duty/tax breakdown, paid amount, and difference
+- **Feb 2026**: Calculator results show per-item "فرق المنتج" (item difference) with color coding (red=underpaid, green=overpaid)
+- **Feb 2026**: Added "منفذ دهوك" checkpoint with 6 fee types (total 120,000 IQD)
+- **Feb 2026**: Copy summary includes per-item breakdowns and differences
 
 ## System Architecture
 
