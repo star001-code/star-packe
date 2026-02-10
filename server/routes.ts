@@ -346,14 +346,32 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: `You are an expert at reading Iraqi customs manifests, invoices, and commercial documents. Extract product/item data from the uploaded image. Return ONLY a valid JSON array (no markdown, no code fences). Each item should have: hs_code (string, the tariff/HS code), description (string, product name/description in Arabic if available), quantity (number), unit_value (number, per-unit value in USD), total_value (number, total line value in USD), unit (string, unit of measurement like KG, PCS, etc). If a field is not visible or unclear, use reasonable defaults (empty string for text, 0 for numbers). Extract ALL items/lines you can see in the document.`,
+            content: `You are an expert at reading Iraqi customs manifests (التصريحة الكمركية), invoices, and commercial documents. Extract ALL data from the uploaded image. Return ONLY a valid JSON object (no markdown, no code fences) with this structure:
+{
+  "checkpoint": "string - the customs checkpoint/border crossing name in Arabic (e.g. إبراهيم خليل, الموصل, دارمان). Look for كود المنفذ or المنفذ الكمركي or دائرة الكمارك",
+  "duty_paid_usd": number - the total duty/fees already paid in USD. Look for الرسم or الرسوم field showing a dollar amount,
+  "tax_paid_usd": number - the tax amount paid in USD. Look for الضريبة field,
+  "total_value_usd": number - the total invoice/goods value in USD. Look for القيمة or المجموع,
+  "items": [
+    {
+      "hs_code": "string - the tariff/HS code (رمز HS)",
+      "description": "string - product name/description in Arabic",
+      "quantity": number,
+      "unit_value": number - per-unit value in USD,
+      "total_value": number - total line value in USD (look for التعمئة or م. الكمية columns),
+      "unit": "string - unit of measurement (الوحدة) like KG, PCS, etc",
+      "duty_amount": number - the duty/fee amount for this line item (الرسم column) in the document currency
+    }
+  ]
+}
+If a field is not visible or unclear, use reasonable defaults (empty string for text, 0 for numbers). Extract ALL items/lines you can see in the document. Pay special attention to the numbers in the summary section at the bottom of the document.`,
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extract all product items from this customs document/manifest/invoice image. Return ONLY a JSON array.",
+                text: "Extract all data from this Iraqi customs document/manifest image including checkpoint name, amounts paid, and all product items. Return ONLY a JSON object.",
               },
               {
                 type: "image_url",
@@ -369,25 +387,30 @@ export async function registerRoutes(
         temperature: 0.1,
       });
 
-      const content = response.choices[0]?.message?.content || "[]";
+      const content = response.choices[0]?.message?.content || "{}";
 
-      // Try to parse the JSON from the response
-      let items: any[] = [];
+      let parsed: any = {};
       try {
-        // Remove potential markdown code fences
         const cleaned = content
           .replace(/```json\s*/g, "")
           .replace(/```\s*/g, "")
           .trim();
-        items = JSON.parse(cleaned);
-        if (!Array.isArray(items)) items = [items];
+        parsed = JSON.parse(cleaned);
       } catch {
         return res
           .status(422)
           .json({ error: "Could not parse extracted data", raw: content });
       }
 
-      // Normalize items
+      let items: any[] = [];
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else if (parsed.items && Array.isArray(parsed.items)) {
+        items = parsed.items;
+      } else {
+        items = [parsed];
+      }
+
       const normalized = items.map((item: any) => ({
         hs_code: String(item.hs_code || "").trim(),
         description: String(item.description || "").trim(),
@@ -395,9 +418,23 @@ export async function registerRoutes(
         unit_value: Number(item.unit_value) || 0,
         total_value: Number(item.total_value) || 0,
         unit: String(item.unit || "").trim(),
+        duty_amount: Number(item.duty_amount) || 0,
       }));
 
-      res.json({ items: normalized });
+      const checkpointName = String(parsed.checkpoint || "").trim();
+      const dutyPaidUsd = Number(parsed.duty_paid_usd) || 0;
+      const taxPaidUsd = Number(parsed.tax_paid_usd) || 0;
+      const totalValueUsd = Number(parsed.total_value_usd) || 0;
+      const totalPaidUsd = dutyPaidUsd + taxPaidUsd;
+
+      res.json({
+        checkpoint: checkpointName,
+        paid_amount_usd: totalPaidUsd,
+        duty_paid_usd: dutyPaidUsd,
+        tax_paid_usd: taxPaidUsd,
+        total_value_usd: totalValueUsd,
+        items: normalized,
+      });
     } catch (e: any) {
       console.error("Manifest extraction error:", e);
       res
