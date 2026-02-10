@@ -11,6 +11,7 @@ import Login from "@/pages/login";
 import About from "@/pages/about";
 import SearchPage from "@/pages/search";
 import CalculatorPage from "@/pages/calculator";
+import ManifestPage from "@/pages/manifest";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/search" component={SearchPage} />
       <Route path="/calculator" component={CalculatorPage} />
+      <Route path="/manifest" component={ManifestPage} />
       <Route component={NotFound} />
     </Switch>
   );

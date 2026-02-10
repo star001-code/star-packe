@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import { openai } from "./replit_integrations/image/client";
 
 const calcItemSchema = z.object({
   hs_code: z.string(),
@@ -26,6 +28,15 @@ const calcRequestSchema = z.object({
 function normHs(v: string): string {
   return (v || "").replace(/[^\d]/g, "").trim();
 }
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -317,6 +328,81 @@ export async function registerRoutes(
       res.json({ id: req.session.userId, username: req.session.username });
     } else {
       res.status(401).json({ error: "غير مسجل" });
+    }
+  });
+
+  app.post("/api/manifest/extract", upload.single("image"), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No image uploaded" });
+      }
+
+      const base64 = file.buffer.toString("base64");
+      const mimeType = file.mimetype;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at reading Iraqi customs manifests, invoices, and commercial documents. Extract product/item data from the uploaded image. Return ONLY a valid JSON array (no markdown, no code fences). Each item should have: hs_code (string, the tariff/HS code), description (string, product name/description in Arabic if available), quantity (number), unit_value (number, per-unit value in USD), total_value (number, total line value in USD), unit (string, unit of measurement like KG, PCS, etc). If a field is not visible or unclear, use reasonable defaults (empty string for text, 0 for numbers). Extract ALL items/lines you can see in the document.`,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Extract all product items from this customs document/manifest/invoice image. Return ONLY a JSON array.",
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64}`,
+                  detail: "high",
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+        temperature: 0.1,
+      });
+
+      const content = response.choices[0]?.message?.content || "[]";
+
+      // Try to parse the JSON from the response
+      let items: any[] = [];
+      try {
+        // Remove potential markdown code fences
+        const cleaned = content
+          .replace(/```json\s*/g, "")
+          .replace(/```\s*/g, "")
+          .trim();
+        items = JSON.parse(cleaned);
+        if (!Array.isArray(items)) items = [items];
+      } catch {
+        return res
+          .status(422)
+          .json({ error: "Could not parse extracted data", raw: content });
+      }
+
+      // Normalize items
+      const normalized = items.map((item: any) => ({
+        hs_code: String(item.hs_code || "").trim(),
+        description: String(item.description || "").trim(),
+        quantity: Number(item.quantity) || 1,
+        unit_value: Number(item.unit_value) || 0,
+        total_value: Number(item.total_value) || 0,
+        unit: String(item.unit || "").trim(),
+      }));
+
+      res.json({ items: normalized });
+    } catch (e: any) {
+      console.error("Manifest extraction error:", e);
+      res
+        .status(500)
+        .json({ error: e.message || "Failed to extract manifest data" });
     }
   });
 

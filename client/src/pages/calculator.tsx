@@ -236,6 +236,38 @@ export default function CalculatorPage() {
   useEffect(() => {
     if (prefilled.current) return;
     const params = new URLSearchParams(window.location.search);
+
+    const manifestData = params.get("manifest");
+    if (manifestData) {
+      prefilled.current = true;
+      try {
+        const parsed = JSON.parse(decodeURIComponent(manifestData));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const newItems: CalcItem[] = parsed.map((p: any) => ({
+            localId: nextId(),
+            hs_code: String(p.hs_code || ""),
+            description: String(p.description || ""),
+            quantity: Number(p.quantity) || 1,
+            unit: String(p.unit || ""),
+            invoice_total_value: Number(p.total_value) || 0,
+            duty_rate: 0.30,
+            protection_rate: 0,
+            category: "consumer",
+            tsc_basis: "avg" as const,
+            tsc_min: null,
+            tsc_avg: null,
+            tsc_max: null,
+          }));
+          setItems(newItems);
+          newItems.forEach((it) => {
+            if (it.hs_code) fetchTscValues(it.hs_code);
+          });
+        }
+      } catch {}
+      window.history.replaceState({}, "", "/calculator");
+      return;
+    }
+
     const hs = params.get("hs");
     if (hs) {
       prefilled.current = true;

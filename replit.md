@@ -26,6 +26,10 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Removed reconstruction tax (was 3% luxury only)
 - **Feb 2026**: Updated checkpoint data with 6 fee types each (SONAR, XRAY, WEIGHING, STAMP, PERMIT, DOCS)
 - **Feb 2026**: Checkpoints now re-seed on every startup to keep data fresh
+- **Feb 2026**: Added manifest upload page (`/manifest`) with AI-powered image extraction using OpenAI GPT-4o Vision
+- **Feb 2026**: Manifest page: drag-and-drop image upload, extracts HS codes/descriptions/quantities/values from customs documents
+- **Feb 2026**: Manifest extracted items can be selected and sent to calculator page via URL parameter
+- **Feb 2026**: Added paid amount input in USD (converted to IQD), Ibrahim Khalil checkpoint
 
 ## System Architecture
 
