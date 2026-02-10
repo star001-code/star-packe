@@ -77,7 +77,7 @@ function ValueCard({
       <Icon className={`h-5 w-5 ${colors[variant]}`} />
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="text-lg font-bold font-mono">
-        {formatNumber(value)}
+        {formatNumber(value)} <span className="text-xs font-normal">د.ع</span>
       </span>
     </div>
   );
