@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ function ValueCard({
 }
 
 export default function SearchPage() {
+  const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -150,7 +152,16 @@ export default function SearchPage() {
               data-testid={`row-product-${product.id}`}
             >
               <TableCell className="font-mono text-sm whitespace-nowrap">
-                {product.hs_code}
+                <button
+                  className="text-primary underline underline-offset-2 hover:opacity-80"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/calculator?hs=${encodeURIComponent(product.hs_code)}&desc=${encodeURIComponent(product.description || "")}&unit=${encodeURIComponent(product.unit || "")}`);
+                  }}
+                  data-testid={`link-hs-${product.id}`}
+                >
+                  {product.hs_code}
+                </button>
               </TableCell>
               <TableCell className="max-w-xs truncate text-sm">
                 {product.description || "-"}

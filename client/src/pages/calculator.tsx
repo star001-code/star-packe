@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -168,6 +168,30 @@ export default function CalculatorPage() {
   const [items, setItems] = useState<CalcItem[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
+  const prefilled = useRef(false);
+
+  useEffect(() => {
+    if (prefilled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const hs = params.get("hs");
+    if (hs) {
+      prefilled.current = true;
+      setItems((prev) => [
+        ...prev,
+        {
+          localId: nextId(),
+          hs_code: hs,
+          description: params.get("desc") || "",
+          quantity: 1,
+          unit: params.get("unit") || "",
+          invoice_total_value: 0,
+          duty_rate: 0.05,
+          tsc_basis: "avg",
+        },
+      ]);
+      window.history.replaceState({}, "", "/calculator");
+    }
+  }, []);
 
   const { data: checkpoints, isLoading: cpLoading } = useQuery<Checkpoint[]>({
     queryKey: ["/api/checkpoints"],
