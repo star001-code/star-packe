@@ -31,26 +31,49 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 const GOODS_CATEGORIES = [
-  { id: "food_basic", label: "مواد غذائية أساسية", dutyRate: 0.05 },
-  { id: "food_processed", label: "مواد غذائية مصنعة", dutyRate: 0.05 },
-  { id: "medical", label: "أدوية ومستلزمات طبية", dutyRate: 0.05 },
-  { id: "agriculture", label: "مدخلات زراعية", dutyRate: 0.05 },
-  { id: "education", label: "مواد تعليمية", dutyRate: 0.05 },
-  { id: "raw_materials", label: "مواد خام", dutyRate: 0.10 },
-  { id: "industrial", label: "مدخلات صناعية", dutyRate: 0.15 },
-  { id: "construction", label: "مواد بناء", dutyRate: 0.15 },
-  { id: "electronics", label: "إلكترونيات", dutyRate: 0.20 },
-  { id: "clothing", label: "ملابس ومنسوجات", dutyRate: 0.20 },
-  { id: "household", label: "أدوات منزلية", dutyRate: 0.25 },
-  { id: "consumer", label: "سلع استهلاكية عامة", dutyRate: 0.30 },
-  { id: "vehicles", label: "مركبات", dutyRate: 0.30 },
-  { id: "luxury_goods", label: "سلع كمالية", dutyRate: 0.40 },
-  { id: "jewelry", label: "مجوهرات وذهب", dutyRate: 0.50 },
-  { id: "luxury_vehicles", label: "مركبات فاخرة", dutyRate: 0.80 },
-  { id: "tobacco", label: "تبغ وسكائر", dutyRate: 1.00 },
-  { id: "alcohol", label: "مشروبات كحولية", dutyRate: 1.50 },
-  { id: "custom", label: "نسبة مخصصة", dutyRate: 0 },
+  { id: "food_basic", label: "مواد غذائية أساسية", dutyRate: 0.05, taxDeposit: 0.01 },
+  { id: "food_processed", label: "مواد غذائية مصنعة", dutyRate: 0.05, taxDeposit: 0.03 },
+  { id: "medical", label: "أدوية ومستلزمات طبية", dutyRate: 0.05, taxDeposit: 0.01 },
+  { id: "agriculture", label: "مدخلات زراعية", dutyRate: 0.05, taxDeposit: 0.01 },
+  { id: "education", label: "مواد تعليمية وقرطاسية", dutyRate: 0.05, taxDeposit: 0.01 },
+  { id: "solar", label: "معدات طاقة شمسية", dutyRate: 0.05, taxDeposit: 0.01 },
+  { id: "raw_materials", label: "مواد خام", dutyRate: 0.10, taxDeposit: 0.03 },
+  { id: "computers", label: "حواسيب ولوازمها", dutyRate: 0.05, taxDeposit: 0.03 },
+  { id: "industrial", label: "مدخلات صناعية", dutyRate: 0.15, taxDeposit: 0.03 },
+  { id: "construction", label: "مواد بناء", dutyRate: 0.15, taxDeposit: 0.03 },
+  { id: "electrical", label: "كهربائيات (ثلاجات، مكيفات، غسالات)", dutyRate: 0.15, taxDeposit: 0.03 },
+  { id: "vehicles", label: "مركبات (موحد 15%)", dutyRate: 0.15, taxDeposit: 0.03 },
+  { id: "electronics", label: "إلكترونيات استهلاكية", dutyRate: 0.20, taxDeposit: 0.03 },
+  { id: "smartphones", label: "هواتف ذكية", dutyRate: 0.20, taxDeposit: 0.03 },
+  { id: "clothing", label: "ملابس ومنسوجات", dutyRate: 0.20, taxDeposit: 0.03 },
+  { id: "household", label: "أدوات منزلية", dutyRate: 0.25, taxDeposit: 0.03 },
+  { id: "consumer", label: "سلع استهلاكية عامة", dutyRate: 0.30, taxDeposit: 0.03 },
+  { id: "luxury_goods", label: "سلع كمالية", dutyRate: 0.40, taxDeposit: 0.03 },
+  { id: "jewelry", label: "مجوهرات وذهب", dutyRate: 0.05, taxDeposit: 0.02 },
+  { id: "machinery", label: "مكائن ومعدات إنتاجية", dutyRate: 0.10, taxDeposit: 0.02 },
+  { id: "cleaning", label: "منتجات تنظيف", dutyRate: 0.65, taxDeposit: 0.03 },
+  { id: "plastic_protected", label: "بلاستيك (حاويات/أكواب) - محمي", dutyRate: 0.30, taxDeposit: 0.03 },
+  { id: "steel_rebar", label: "حديد تسليح (10-32 ملم) - محمي", dutyRate: 0.30, taxDeposit: 0.03 },
+  { id: "tobacco", label: "تبغ وسكائر", dutyRate: 1.00, taxDeposit: 0.03 },
+  { id: "alcohol", label: "مشروبات كحولية", dutyRate: 1.50, taxDeposit: 0.03 },
+  { id: "custom", label: "نسبة مخصصة", dutyRate: 0, taxDeposit: 0.03 },
 ];
+
+const PROTECTION_RULES: { hsPrefix: string; rate: number; label: string }[] = [
+  { hsPrefix: "72142", rate: 0.30, label: "حديد تسليح - حماية منتج وطني" },
+  { hsPrefix: "3924", rate: 0.60, label: "حاويات بلاستيك - حماية منتج وطني" },
+  { hsPrefix: "3917", rate: 0.60, label: "أنابيب بلاستيك - حماية منتج وطني" },
+];
+
+function getAutoProtection(hsCode: string): number {
+  const normalized = hsCode.replace(/[^\d]/g, "");
+  for (const rule of PROTECTION_RULES) {
+    if (normalized.startsWith(rule.hsPrefix)) {
+      return rule.rate;
+    }
+  }
+  return 0;
+}
 
 type Product = {
   id: number;
@@ -80,6 +103,7 @@ type CalcItem = {
   duty_rate: number;
   protection_rate: number;
   category: string;
+  tax_deposit_rate: number;
   tsc_basis: "avg" | "min" | "max";
   tsc_min: number | null;
   tsc_avg: number | null;
@@ -108,6 +132,7 @@ type CalcResult = {
     duty_iqd: number;
     sales_tax_iqd: number;
     municipal_tax_iqd: number;
+    tax_deposit_iqd: number;
     goods_category: string;
     item_total_iqd: number;
     paid_duty_iqd: number;
@@ -117,6 +142,7 @@ type CalcResult = {
     duty_iqd: number;
     sales_tax_iqd: number;
     municipal_tax_iqd: number;
+    tax_deposit_iqd: number;
     fees_iqd: number;
     total_payable_iqd: number;
     paid_amount_iqd: number;
@@ -216,6 +242,7 @@ export default function CalculatorPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
   const [paidAmount, setPaidAmount] = useState(0);
+  const [asycudaDiscount, setAsycudaDiscount] = useState(false);
   const prefilled = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -273,26 +300,31 @@ export default function CalculatorPage() {
         }
 
         if (manifestItems.length > 0) {
-          const newItems: CalcItem[] = manifestItems.map((p: any) => ({
-            localId: nextId(),
-            hs_code: String(p.hs_code || ""),
-            description: String(p.description || ""),
-            quantity: Number(p.quantity) || 1,
-            unit: String(p.unit || ""),
-            invoice_total_value: Number(p.total_value) || 0,
-            duty_rate: Number(p.duty_rate) > 0 ? Number(p.duty_rate) : 0.30,
-            protection_rate: 0,
-            category: Number(p.duty_rate) > 0
+          const newItems: CalcItem[] = manifestItems.map((p: any) => {
+            const matchedCatId = Number(p.duty_rate) > 0
               ? (GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
                   Math.abs(c.dutyRate - Number(p.duty_rate)) < Math.abs(best.dutyRate - Number(p.duty_rate)) ? c : best
                 ).id)
-              : "consumer",
-            tsc_basis: "avg" as const,
-            tsc_min: null,
-            tsc_avg: null,
-            tsc_max: null,
-            paid_duty: Number(p.duty_amount) || 0,
-          }));
+              : "consumer";
+            const cat = GOODS_CATEGORIES.find(c => c.id === matchedCatId);
+            return {
+              localId: nextId(),
+              hs_code: String(p.hs_code || ""),
+              description: String(p.description || ""),
+              quantity: Number(p.quantity) || 1,
+              unit: String(p.unit || ""),
+              invoice_total_value: Number(p.total_value) || 0,
+              duty_rate: Number(p.duty_rate) > 0 ? Number(p.duty_rate) : 0.30,
+              protection_rate: getAutoProtection(String(p.hs_code || "")),
+              category: matchedCatId,
+              tax_deposit_rate: cat ? cat.taxDeposit : 0.03,
+              tsc_basis: "avg" as const,
+              tsc_min: null,
+              tsc_avg: null,
+              tsc_max: null,
+              paid_duty: Number(p.duty_amount) || 0,
+            };
+          });
           setItems(newItems);
           newItems.forEach((it) => {
             if (it.hs_code) fetchTscValues(it.hs_code);
@@ -306,6 +338,7 @@ export default function CalculatorPage() {
     const hs = params.get("hs");
     if (hs) {
       prefilled.current = true;
+      const consumerCat = GOODS_CATEGORIES.find(c => c.id === "consumer");
       setItems((prev) => [
         ...prev,
         {
@@ -316,8 +349,9 @@ export default function CalculatorPage() {
           unit: params.get("unit") || "",
           invoice_total_value: 0,
           duty_rate: 0.30,
-          protection_rate: 0,
+          protection_rate: getAutoProtection(hs),
           category: "consumer",
+          tax_deposit_rate: consumerCat ? consumerCat.taxDeposit : 0.03,
           tsc_basis: "avg",
           tsc_min: null,
           tsc_avg: null,
@@ -356,6 +390,7 @@ export default function CalculatorPage() {
   });
 
   const addProduct = (product: Product) => {
+    const cat = GOODS_CATEGORIES.find(c => c.id === "consumer");
     setItems((prev) => [
       ...prev,
       {
@@ -366,8 +401,9 @@ export default function CalculatorPage() {
         unit: product.unit || "",
         invoice_total_value: 0,
         duty_rate: 0.30,
-        protection_rate: 0,
+        protection_rate: getAutoProtection(product.hs_code),
         category: "consumer",
+        tax_deposit_rate: cat ? cat.taxDeposit : 0.03,
         tsc_basis: "avg",
         tsc_min: product.min_value,
         tsc_avg: product.avg_value,
@@ -392,7 +428,7 @@ export default function CalculatorPage() {
     setItems((prev) =>
       prev.map((it) =>
         it.localId === localId
-          ? { ...it, category: categoryId, duty_rate: cat ? cat.dutyRate : it.duty_rate }
+          ? { ...it, category: categoryId, duty_rate: cat ? cat.dutyRate : it.duty_rate, tax_deposit_rate: cat ? cat.taxDeposit : it.tax_deposit_rate }
           : it
       )
     );
@@ -419,6 +455,7 @@ export default function CalculatorPage() {
       fx_rate: fxRate,
       invoice_currency: "USD",
       paid_amount: paidAmount,
+      asycuda_discount: asycudaDiscount,
       items: items.map((it) => ({
         hs_code: it.hs_code,
         quantity: it.quantity,
@@ -426,6 +463,7 @@ export default function CalculatorPage() {
         invoice_total_value: it.invoice_total_value,
         duty_rate: it.duty_rate,
         protection_rate: it.protection_rate,
+        tax_deposit_rate: it.tax_deposit_rate,
         tsc_basis: it.tsc_basis,
         goods_category: it.category,
         paid_duty: it.paid_duty,
@@ -507,6 +545,24 @@ export default function CalculatorPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <label className="flex items-center gap-2 cursor-pointer" data-testid="label-asycuda-discount">
+            <input
+              type="checkbox"
+              checked={asycudaDiscount}
+              onChange={(e) => {
+                setAsycudaDiscount(e.target.checked);
+                setResult(null);
+              }}
+              className="h-4 w-4 rounded border-border"
+              data-testid="checkbox-asycuda-discount"
+            />
+            <span className="text-sm">تخفيض أسيكودا 25% (فبراير 2026)</span>
+          </label>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
@@ -713,6 +769,7 @@ export default function CalculatorPage() {
                     lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} د.ع`);
                     lines.push(`  ضريبة مبيعات (5%): ${formatIQD(ri.sales_tax_iqd)} د.ع`);
                     lines.push(`  ضريبة بلدية (2%): ${formatIQD(ri.municipal_tax_iqd)} د.ع`);
+                    lines.push(`  أمانة ضريبية: ${formatIQD(ri.tax_deposit_iqd)} د.ع`);
                     lines.push(`  إجمالي رسوم المنتج: ${formatIQD(ri.item_total_iqd)} د.ع`);
                     if (ri.paid_duty_iqd > 0) {
                       lines.push(`  المدفوع لهذا المنتج: ${formatIQD(ri.paid_duty_iqd)} د.ع`);
@@ -728,6 +785,7 @@ export default function CalculatorPage() {
                   lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} د.ع`);
                   lines.push(`ضريبة مبيعات: ${formatIQD(result.summary.sales_tax_iqd)} د.ع`);
                   lines.push(`ضريبة بلدية: ${formatIQD(result.summary.municipal_tax_iqd)} د.ع`);
+                  lines.push(`أمانة ضريبية: ${formatIQD(result.summary.tax_deposit_iqd)} د.ع`);
                   lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
                   lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
                   if (result.summary.paid_amount_iqd > 0) {
@@ -825,6 +883,10 @@ export default function CalculatorPage() {
                       <span className="text-muted-foreground">ضريبة بلدية (2%):</span>
                       <span className="font-mono mr-1">{formatIQD(ri.municipal_tax_iqd)} د.ع</span>
                     </div>
+                    <div>
+                      <span className="text-muted-foreground">أمانة ضريبية:</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.tax_deposit_iqd)} د.ع</span>
+                    </div>
                   </div>
                   <div className="border-t pt-2 mt-2 space-y-1">
                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -872,6 +934,10 @@ export default function CalculatorPage() {
               <div className="flex items-center justify-between text-sm" data-testid="text-municipal-tax">
                 <span className="text-muted-foreground">ضريبة البلدية:</span>
                 <span className="font-mono">{formatIQD(result.summary.municipal_tax_iqd)} د.ع</span>
+              </div>
+              <div className="flex items-center justify-between text-sm" data-testid="text-tax-deposit">
+                <span className="text-muted-foreground">الأمانة الضريبية:</span>
+                <span className="font-mono">{formatIQD(result.summary.tax_deposit_iqd)} د.ع</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">رسوم المنفذ:</span>
