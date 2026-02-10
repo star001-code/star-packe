@@ -72,9 +72,11 @@ type CalcResult = {
     quantity: number;
     unit: string;
     invoice_total_value: number;
+    invoice_total_iqd: number;
     invoice_unit_value: number;
-    tsc_unit_value: number;
-    valuation_unit_value: number;
+    invoice_unit_iqd: number;
+    tsc_unit_value_iqd: number;
+    valuation_unit_iqd: number;
     customs_value_iqd: number;
     duty_rate: number;
     duty_iqd: number;
@@ -513,19 +515,20 @@ export default function CalculatorPage() {
                   result.items.forEach((ri) => {
                     lines.push(`${ri.hs_code} - ${ri.description}`);
                     lines.push(`  الكمية: ${ri.quantity} ${ri.unit}`);
-                    lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_value)}`);
-                    lines.push(`  القيمة المعتمدة: $${formatUSD(ri.valuation_unit_value)} / وحدة`);
-                    lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} IQD`);
+                    lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_value)} (${formatIQD(ri.invoice_total_iqd)} د.ع)`);
+                    lines.push(`  قيمة TSC: ${formatIQD(ri.tsc_unit_value_iqd)} د.ع / وحدة`);
+                    lines.push(`  القيمة المعتمدة: ${formatIQD(ri.valuation_unit_iqd)} د.ع / وحدة`);
+                    lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} د.ع`);
                   });
                   lines.push(`---`);
                   if (result.fees.items.length > 0) {
                     result.fees.items.forEach((f) => {
-                      lines.push(`${f.label || f.code}: ${formatIQD(f.amount_iqd)} IQD`);
+                      lines.push(`${f.label || f.code}: ${formatIQD(f.amount_iqd)} د.ع`);
                     });
                   }
-                  lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} IQD`);
-                  lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} IQD`);
-                  lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} IQD`);
+                  lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} د.ع`);
+                  lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
+                  lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
                   try {
                     await navigator.clipboard.writeText(lines.join("\n"));
                     toast({ title: "تم النسخ", description: "تم نسخ ملخص الحساب" });
@@ -580,23 +583,23 @@ export default function CalculatorPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">قيمة الوحدة بالفاتورة:</span>
-                      <span className="font-mono mr-1">${formatUSD(ri.invoice_unit_value)}</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.invoice_unit_value)} ({formatIQD(ri.invoice_unit_iqd)} د.ع)</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">قيمة TSC للوحدة:</span>
-                      <span className="font-mono mr-1">${formatUSD(ri.tsc_unit_value)}</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.tsc_unit_value_iqd)} د.ع</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">القيمة المعتمدة للوحدة:</span>
-                      <span className="font-mono mr-1">${formatUSD(ri.valuation_unit_value)}</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.valuation_unit_iqd)} د.ع</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">القيمة الكمركية:</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.customs_value_iqd)} IQD</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.customs_value_iqd)} د.ع</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">الرسم ({(ri.duty_rate * 100).toFixed(0)}%):</span>
-                      <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_iqd)} IQD</span>
+                      <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_iqd)} د.ع</span>
                     </div>
                   </div>
                 </CardContent>
@@ -609,7 +612,7 @@ export default function CalculatorPage() {
                 {result.fees.items.map((f, i) => (
                   <div key={i} className="flex items-center justify-between gap-2">
                     <span>{f.label || f.code}</span>
-                    <span className="font-mono">{formatIQD(f.amount_iqd)} IQD</span>
+                    <span className="font-mono">{formatIQD(f.amount_iqd)} د.ع</span>
                   </div>
                 ))}
               </div>
@@ -618,19 +621,19 @@ export default function CalculatorPage() {
             <div className="border-t pt-3 space-y-2" data-testid="section-summary">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">إجمالي الرسوم الكمركية:</span>
-                <span className="font-mono font-bold">{formatIQD(result.summary.duty_iqd)} IQD</span>
+                <span className="font-mono font-bold">{formatIQD(result.summary.duty_iqd)} د.ع</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">رسوم المنفذ:</span>
-                <span className="font-mono">{formatIQD(result.summary.fees_iqd)} IQD</span>
+                <span className="font-mono">{formatIQD(result.summary.fees_iqd)} د.ع</span>
               </div>
               <div className="flex items-center justify-between text-base font-bold bg-muted/50 rounded-md p-3" data-testid="text-total">
                 <span>المجموع الكلي:</span>
-                <span className="font-mono text-lg">{formatIQD(result.summary.total_payable_iqd)} IQD</span>
+                <span className="font-mono text-lg">{formatIQD(result.summary.total_payable_iqd)} د.ع</span>
               </div>
             </div>
 
-            {result.items.some((ri) => ri.tsc_unit_value > ri.invoice_unit_value) && (
+            {result.items.some((ri) => ri.tsc_unit_value_iqd > ri.invoice_unit_iqd) && (
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-md p-3">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <p>

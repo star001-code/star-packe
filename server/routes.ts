@@ -165,11 +165,15 @@ export async function registerRoutes(
         }
 
         const invoiceUnit = it.quantity ? it.invoice_total_value / it.quantity : 0;
-        const valuationUnit = Math.max(invoiceUnit, tscUnit);
-        const customsValueBase = valuationUnit * it.quantity;
-        const customsValueIqd = parsed.invoice_currency.toUpperCase() === "IQD"
-          ? customsValueBase
-          : customsValueBase * parsed.fx_rate;
+        const invoiceUnitIqd = parsed.invoice_currency.toUpperCase() === "IQD"
+          ? invoiceUnit
+          : invoiceUnit * parsed.fx_rate;
+        const invoiceTotalIqd = parsed.invoice_currency.toUpperCase() === "IQD"
+          ? it.invoice_total_value
+          : it.invoice_total_value * parsed.fx_rate;
+        const tscUnitIqd = tscUnit;
+        const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
+        const customsValueIqd = valuationUnitIqd * it.quantity;
         const dutyIqd = customsValueIqd * it.duty_rate;
 
         dutySum += dutyIqd;
@@ -179,9 +183,11 @@ export async function registerRoutes(
           quantity: it.quantity,
           unit,
           invoice_total_value: it.invoice_total_value,
+          invoice_total_iqd: invoiceTotalIqd,
           invoice_unit_value: invoiceUnit,
-          tsc_unit_value: tscUnit,
-          valuation_unit_value: valuationUnit,
+          invoice_unit_iqd: invoiceUnitIqd,
+          tsc_unit_value_iqd: tscUnitIqd,
+          valuation_unit_iqd: valuationUnitIqd,
           customs_value_iqd: customsValueIqd,
           duty_rate: it.duty_rate,
           duty_iqd: dutyIqd,
