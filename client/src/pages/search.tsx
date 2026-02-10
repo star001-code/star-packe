@@ -27,6 +27,7 @@ import {
   ChevronRight,
   ChevronLeft,
   DollarSign,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -209,7 +210,7 @@ export default function SearchPage() {
           <Button
             size="icon"
             variant="ghost"
-            className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7"
+            className="absolute left-1 top-1/2 -translate-y-1/2"
             onClick={clearSearch}
             data-testid="button-clear-search"
           >
@@ -293,6 +294,17 @@ export default function SearchPage() {
                 <ValueCard label="أقصى قيمة" value={selectedProduct.max_value} icon={TrendingUp} variant="max" />
               </div>
             </div>
+
+            <Button
+              className="w-full"
+              onClick={() => {
+                navigate(`/calculator?hs=${encodeURIComponent(selectedProduct.hs_code)}&desc=${encodeURIComponent(selectedProduct.description || "")}&unit=${encodeURIComponent(selectedProduct.unit || "")}`);
+              }}
+              data-testid="button-add-to-calc"
+            >
+              <Calculator className="h-4 w-4" />
+              <span className="mr-1">أضف للحاسبة</span>
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -24,6 +24,8 @@ import {
   Loader2,
   Package,
   AlertCircle,
+  Copy,
+  RotateCcw,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +57,9 @@ type CalcItem = {
   invoice_total_value: number;
   duty_rate: number;
   tsc_basis: "avg" | "min" | "max";
+  tsc_min: number | null;
+  tsc_avg: number | null;
+  tsc_max: number | null;
 };
 
 type CalcResult = {
@@ -170,6 +175,25 @@ export default function CalculatorPage() {
   const [result, setResult] = useState<CalcResult | null>(null);
   const prefilled = useRef(false);
 
+  const fetchTscValues = async (hsCode: string) => {
+    try {
+      const res = await fetch(`/api/hs/${encodeURIComponent(hsCode)}`);
+      if (res.ok) {
+        const products: Product[] = await res.json();
+        if (products.length > 0) {
+          const p = products[0];
+          setItems((prev) =>
+            prev.map((it) =>
+              it.hs_code === hsCode && it.tsc_min === null
+                ? { ...it, tsc_min: p.min_value, tsc_avg: p.avg_value, tsc_max: p.max_value }
+                : it
+            )
+          );
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     if (prefilled.current) return;
     const params = new URLSearchParams(window.location.search);
@@ -187,8 +211,12 @@ export default function CalculatorPage() {
           invoice_total_value: 0,
           duty_rate: 0.05,
           tsc_basis: "avg",
+          tsc_min: null,
+          tsc_avg: null,
+          tsc_max: null,
         },
       ]);
+      fetchTscValues(hs);
       window.history.replaceState({}, "", "/calculator");
     }
   }, []);
@@ -227,6 +255,9 @@ export default function CalculatorPage() {
         invoice_total_value: 0,
         duty_rate: 0.05,
         tsc_basis: "avg",
+        tsc_min: product.min_value,
+        tsc_avg: product.avg_value,
+        tsc_max: product.max_value,
       },
     ]);
     setResult(null);
@@ -374,6 +405,21 @@ export default function CalculatorPage() {
                   </Button>
                 </div>
 
+                {(item.tsc_min !== null || item.tsc_avg !== null || item.tsc_max !== null) && (
+                  <div className="flex items-center gap-3 text-xs flex-wrap" data-testid={`tsc-values-${idx}`}>
+                    <span className="text-muted-foreground">TSC:</span>
+                    {item.tsc_min !== null && (
+                      <span className="text-blue-400">أدنى <span className="font-mono">${formatUSD(item.tsc_min)}</span></span>
+                    )}
+                    {item.tsc_avg !== null && (
+                      <span className="text-emerald-400">متوسط <span className="font-mono">${formatUSD(item.tsc_avg)}</span></span>
+                    )}
+                    {item.tsc_max !== null && (
+                      <span className="text-amber-400">أقصى <span className="font-mono">${formatUSD(item.tsc_max)}</span></span>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">الكمية</Label>
@@ -449,11 +495,62 @@ export default function CalculatorPage() {
 
       {result && (
         <Card data-testid="card-result">
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Receipt className="h-4 w-4" />
               نتائج الحساب
             </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const lines: string[] = [];
+                  lines.push(`حاسبة الرسوم الكمركية`);
+                  lines.push(`المنفذ: ${result.checkpoint.name}`);
+                  lines.push(`سعر الصرف: ${result.fx.rate.toLocaleString()} IQD/USD`);
+                  lines.push(`---`);
+                  result.items.forEach((ri) => {
+                    lines.push(`${ri.hs_code} - ${ri.description}`);
+                    lines.push(`  الكمية: ${ri.quantity} ${ri.unit}`);
+                    lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_value)}`);
+                    lines.push(`  القيمة المعتمدة: $${formatUSD(ri.valuation_unit_value)} / وحدة`);
+                    lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} IQD`);
+                  });
+                  lines.push(`---`);
+                  if (result.fees.items.length > 0) {
+                    result.fees.items.forEach((f) => {
+                      lines.push(`${f.label || f.code}: ${formatIQD(f.amount_iqd)} IQD`);
+                    });
+                  }
+                  lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} IQD`);
+                  lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} IQD`);
+                  lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} IQD`);
+                  try {
+                    await navigator.clipboard.writeText(lines.join("\n"));
+                    toast({ title: "تم النسخ", description: "تم نسخ ملخص الحساب" });
+                  } catch {
+                    toast({ title: "تعذر النسخ", description: "يرجى النسخ يدوياً", variant: "destructive" });
+                  }
+                }}
+                data-testid="button-copy-result"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span className="mr-1">نسخ</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setResult(null);
+                  setItems([]);
+                }}
+                data-testid="button-reset"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="mr-1">جديد</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
