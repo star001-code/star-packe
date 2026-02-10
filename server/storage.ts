@@ -166,6 +166,17 @@ export class DatabaseStorage implements IStorage {
           { code: "DOCS", label: "رسم مستمسكات", amountIqd: 5000 },
         ],
       },
+      ibrahim_khalil: {
+        name: "منفذ إبراهيم خليل",
+        fees: [
+          { code: "SONAR", label: "فحص سونار", amountIqd: 30000 },
+          { code: "XRAY", label: "فحص أشعة", amountIqd: 55000 },
+          { code: "WEIGHING", label: "وزن وعد", amountIqd: 20000 },
+          { code: "STAMP", label: "وسم البضاعة", amountIqd: 10000 },
+          { code: "PERMIT", label: "رسم تصريح مرور", amountIqd: 25000 },
+          { code: "DOCS", label: "رسم مستمسكات", amountIqd: 10000 },
+        ],
+      },
     };
 
     for (const [id, cp] of Object.entries(data)) {

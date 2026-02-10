@@ -419,7 +419,7 @@ export default function CalculatorPage() {
           <CardContent className="p-4 space-y-2">
             <Label className="flex items-center gap-1.5 text-sm">
               <Receipt className="h-3.5 w-3.5" />
-              المبلغ المدفوع سابقاً (IQD)
+              المبلغ المدفوع سابقاً (USD)
             </Label>
             <Input
               type="number"
@@ -643,7 +643,7 @@ export default function CalculatorPage() {
                   lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
                   lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
                   if (result.summary.paid_amount_iqd > 0) {
-                    lines.push(`المبلغ المدفوع: ${formatIQD(result.summary.paid_amount_iqd)} د.ع`);
+                    lines.push(`المبلغ المدفوع: $${formatUSD(result.summary.paid_amount_iqd / result.fx.rate)} (${formatIQD(result.summary.paid_amount_iqd)} د.ع)`);
                     lines.push(`الفرق المطلوب: ${formatIQD(result.summary.difference_iqd)} د.ع`);
                   }
                   try {
@@ -779,7 +779,7 @@ export default function CalculatorPage() {
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">المبلغ المدفوع سابقاً:</span>
-                    <span className="font-mono">{formatIQD(result.summary.paid_amount_iqd)} د.ع</span>
+                    <span className="font-mono">${formatUSD(result.summary.paid_amount_iqd / result.fx.rate)} ({formatIQD(result.summary.paid_amount_iqd)} د.ع)</span>
                   </div>
                   <div className="flex items-center justify-between text-base font-bold bg-primary/10 rounded-md p-3" data-testid="text-difference">
                     <span>الفرق المطلوب:</span>

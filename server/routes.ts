@@ -209,7 +209,10 @@ export async function registerRoutes(
       }
 
       const totalPayable = dutySum + salesTaxSum + municipalTaxSum + feesTotal;
-      const paidAmount = parsed.paid_amount || 0;
+      const paidAmountUsd = parsed.paid_amount || 0;
+      const paidAmount = parsed.invoice_currency.toUpperCase() === "IQD"
+        ? paidAmountUsd
+        : paidAmountUsd * parsed.fx_rate;
 
       res.json({
         checkpoint: { id: cp.id, name: cp.name },
