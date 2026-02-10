@@ -370,7 +370,8 @@ export async function registerRoutes(
       "unit_value": number - per-unit value in USD,
       "total_value": number - total line value in USD (look for التعمئة or م. الكمية columns),
       "unit": "string - unit of measurement (الوحدة) like KG, PCS, etc",
-      "duty_amount": number - the duty/fee amount for this line item (الرسم column) in the document currency
+      "duty_amount": number - the duty/fee amount for this line item (الرسم column) in the document currency,
+      "duty_rate": number - the duty rate percentage for this item as a decimal (e.g. 0.05 for 5%, 0.30 for 30%). Look for نسبة الرسم or نسبة التعرفة or % column. If you see a percentage like 5% use 0.05, 15% use 0.15, 30% use 0.30 etc. If not found, use 0
     }
   ]
 }
@@ -429,6 +430,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
         total_value: Number(item.total_value) || 0,
         unit: String(item.unit || "").trim(),
         duty_amount: Number(item.duty_amount) || 0,
+        duty_rate: Number(item.duty_rate) || 0,
       }));
 
       const checkpointName = String(parsed.checkpoint || "").trim();
