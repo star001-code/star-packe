@@ -140,21 +140,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async seedCheckpoints(): Promise<void> {
-    const existing = await db.select().from(checkpoints);
-    if (existing.length > 0) return;
+    await db.delete(checkpointFees);
+    await db.delete(checkpoints);
 
     const data: Record<string, { name: string; fees: Array<{ code: string; label: string; amountIqd: number }> }> = {
       mosul_dam: {
         name: "صيطرة سد الموصل",
         fees: [
-          { code: "SONAR", label: "سونار", amountIqd: 25000 },
-          { code: "PERMIT", label: "تصريح", amountIqd: 10000 },
+          { code: "SONAR", label: "فحص سونار", amountIqd: 25000 },
+          { code: "XRAY", label: "فحص أشعة", amountIqd: 50000 },
+          { code: "WEIGHING", label: "وزن وعد", amountIqd: 15000 },
+          { code: "STAMP", label: "وسم البضاعة", amountIqd: 10000 },
+          { code: "PERMIT", label: "رسم تصريح مرور", amountIqd: 20000 },
+          { code: "DOCS", label: "رسم مستمسكات", amountIqd: 5000 },
         ],
       },
       darman: {
         name: "صيطرة دارمان",
         fees: [
-          { code: "SONAR", label: "سونار", amountIqd: 20000 },
+          { code: "SONAR", label: "فحص سونار", amountIqd: 25000 },
+          { code: "XRAY", label: "فحص أشعة", amountIqd: 50000 },
+          { code: "WEIGHING", label: "وزن وعد", amountIqd: 15000 },
+          { code: "STAMP", label: "وسم البضاعة", amountIqd: 10000 },
+          { code: "PERMIT", label: "رسم تصريح مرور", amountIqd: 15000 },
+          { code: "DOCS", label: "رسم مستمسكات", amountIqd: 5000 },
         ],
       },
     };

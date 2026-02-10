@@ -63,14 +63,14 @@ function normalizeRow(row: Record<string, any>): InsertProduct | null {
 }
 
 export async function runSeed(): Promise<void> {
+  log("Seeding checkpoints...", "seed");
+  await storage.seedCheckpoints();
+
   const productCount = await storage.getProductCount();
   if (productCount > 500) {
     log(`Database already has ${productCount} products, skipping seed.`, "seed");
     return;
   }
-
-  log("Seeding checkpoints...", "seed");
-  await storage.seedCheckpoints();
 
   const fullPath = path.resolve("attached_assets/TSC_2025-10-13_full.json");
   const legacyPath = path.resolve("attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json");
