@@ -242,8 +242,32 @@ export default function CalculatorPage() {
       prefilled.current = true;
       try {
         const parsed = JSON.parse(decodeURIComponent(manifestData));
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const newItems: CalcItem[] = parsed.map((p: any) => ({
+        const manifestItems = Array.isArray(parsed) ? parsed : (parsed.items || []);
+
+        if (parsed.paid_amount_usd) {
+          setPaidAmount(Number(parsed.paid_amount_usd) || 0);
+        }
+
+        if (parsed.checkpoint) {
+          const cpName = String(parsed.checkpoint).trim();
+          const checkpointMap: Record<string, string> = {
+            "إبراهيم خليل": "ibrahim_khalil",
+            "ابراهيم خليل": "ibrahim_khalil",
+            "ibrahim khalil": "ibrahim_khalil",
+            "سد الموصل": "mosul_dam",
+            "الموصل": "mosul_dam",
+            "دارمان": "darman",
+          };
+          const normalizedName = cpName.toLowerCase().trim();
+          const matchedId = checkpointMap[cpName] ||
+            Object.entries(checkpointMap).find(([k]) => normalizedName.includes(k.toLowerCase()))?.[1];
+          if (matchedId) {
+            setCheckpointId(matchedId);
+          }
+        }
+
+        if (manifestItems.length > 0) {
+          const newItems: CalcItem[] = manifestItems.map((p: any) => ({
             localId: nextId(),
             hs_code: String(p.hs_code || ""),
             description: String(p.description || ""),

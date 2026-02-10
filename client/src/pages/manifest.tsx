@@ -8,12 +8,14 @@ import {
   Upload,
   FileImage,
   Loader2,
-  ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Package,
   X,
   Calculator,
+  MapPin,
+  Receipt,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,6 +26,16 @@ type ExtractedItem = {
   unit_value: number;
   total_value: number;
   unit: string;
+  duty_amount: number;
+};
+
+type ExtractionResult = {
+  checkpoint: string;
+  paid_amount_usd: number;
+  duty_paid_usd: number;
+  tax_paid_usd: number;
+  total_value_usd: number;
+  items: ExtractedItem[];
 };
 
 function formatUSD(n: number): string {
@@ -38,7 +50,7 @@ export default function ManifestPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [items, setItems] = useState<ExtractedItem[]>([]);
+  const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
 
@@ -53,7 +65,7 @@ export default function ManifestPage() {
     }
 
     setFileName(file.name);
-    setItems([]);
+    setExtraction(null);
     setError(null);
     setSelectedItems(new Set());
 
@@ -77,9 +89,9 @@ export default function ManifestPage() {
         throw new Error(body.error || "فشل في استخراج البيانات");
       }
 
-      const data = await res.json();
+      const data: ExtractionResult = await res.json();
       if (data.items && data.items.length > 0) {
-        setItems(data.items);
+        setExtraction(data);
         const allIndices = new Set<number>(data.items.map((_: ExtractedItem, i: number) => i));
         setSelectedItems(allIndices);
         toast({ title: "تم الاستخراج", description: `تم استخراج ${data.items.length} منتج من الصورة` });
@@ -119,7 +131,7 @@ export default function ManifestPage() {
   };
 
   const selectAll = () => {
-    setSelectedItems(new Set(items.map((_, i) => i)));
+    if (extraction) setSelectedItems(new Set(extraction.items.map((_, i) => i)));
   };
 
   const deselectAll = () => {
@@ -127,23 +139,31 @@ export default function ManifestPage() {
   };
 
   const sendToCalculator = () => {
-    const selected = items.filter((_, i) => selectedItems.has(i));
+    if (!extraction) return;
+    const selected = extraction.items.filter((_, i) => selectedItems.has(i));
     if (selected.length === 0) {
       toast({ title: "تنبيه", description: "يرجى اختيار منتج واحد على الأقل", variant: "destructive" });
       return;
     }
-    const encoded = encodeURIComponent(JSON.stringify(selected));
+    const payload = {
+      checkpoint: extraction.checkpoint,
+      paid_amount_usd: extraction.paid_amount_usd,
+      items: selected,
+    };
+    const encoded = encodeURIComponent(JSON.stringify(payload));
     navigate(`/calculator?manifest=${encoded}`);
   };
 
   const clearAll = () => {
     setPreview(null);
     setFileName("");
-    setItems([]);
+    setExtraction(null);
     setError(null);
     setSelectedItems(new Set());
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const items = extraction?.items || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -254,8 +274,51 @@ export default function ManifestPage() {
         </Card>
       )}
 
-      {items.length > 0 && !isExtracting && (
+      {extraction && !isExtracting && (
         <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {extraction.checkpoint && (
+              <Card>
+                <CardContent className="p-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">المنفذ الكمركي</p>
+                    <p className="text-sm font-medium truncate" data-testid="text-extracted-checkpoint">{extraction.checkpoint}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {extraction.paid_amount_usd > 0 && (
+              <Card>
+                <CardContent className="p-3 flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">المبلغ المدفوع</p>
+                    <p className="text-sm font-medium font-mono" data-testid="text-extracted-paid">
+                      ${formatUSD(extraction.paid_amount_usd)}
+                      {extraction.duty_paid_usd > 0 && extraction.tax_paid_usd > 0 && (
+                        <span className="text-xs text-muted-foreground font-normal mr-1">
+                          (رسم ${formatUSD(extraction.duty_paid_usd)} + ضريبة ${formatUSD(extraction.tax_paid_usd)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {extraction.total_value_usd > 0 && (
+              <Card>
+                <CardContent className="p-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">القيمة الإجمالية</p>
+                    <p className="text-sm font-medium font-mono" data-testid="text-extracted-total-value">${formatUSD(extraction.total_value_usd)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -304,6 +367,9 @@ export default function ManifestPage() {
                         )}
                         {item.total_value > 0 && (
                           <span>الإجمالي: <span className="font-mono">${formatUSD(item.total_value)}</span></span>
+                        )}
+                        {item.duty_amount > 0 && (
+                          <span>الرسم: <span className="font-mono">${formatUSD(item.duty_amount)}</span></span>
                         )}
                       </div>
                     </div>
