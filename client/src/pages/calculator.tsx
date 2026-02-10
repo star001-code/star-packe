@@ -84,6 +84,7 @@ type CalcItem = {
   tsc_min: number | null;
   tsc_avg: number | null;
   tsc_max: number | null;
+  paid_duty: number;
 };
 
 type CalcResult = {
@@ -108,6 +109,9 @@ type CalcResult = {
     sales_tax_iqd: number;
     municipal_tax_iqd: number;
     goods_category: string;
+    item_total_iqd: number;
+    paid_duty_iqd: number;
+    item_difference_iqd: number;
   }[];
   summary: {
     duty_iqd: number;
@@ -257,6 +261,7 @@ export default function CalculatorPage() {
             "سد الموصل": "mosul_dam",
             "الموصل": "mosul_dam",
             "دارمان": "darman",
+            "دهوك": "duhok",
           };
           const normalizedName = cpName.toLowerCase().trim();
           const matchedId = checkpointMap[cpName] ||
@@ -281,6 +286,7 @@ export default function CalculatorPage() {
             tsc_min: null,
             tsc_avg: null,
             tsc_max: null,
+            paid_duty: Number(p.duty_amount) || 0,
           }));
           setItems(newItems);
           newItems.forEach((it) => {
@@ -311,6 +317,7 @@ export default function CalculatorPage() {
           tsc_min: null,
           tsc_avg: null,
           tsc_max: null,
+          paid_duty: 0,
         },
       ]);
       fetchTscValues(hs);
@@ -357,6 +364,7 @@ export default function CalculatorPage() {
         tsc_min: product.min_value,
         tsc_avg: product.avg_value,
         tsc_max: product.max_value,
+        paid_duty: 0,
       },
     ]);
     setResult(null);
@@ -412,6 +420,7 @@ export default function CalculatorPage() {
         protection_rate: it.protection_rate,
         tsc_basis: it.tsc_basis,
         goods_category: it.category,
+        paid_duty: it.paid_duty,
       })),
     });
   };
@@ -553,7 +562,7 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">الكمية</Label>
                     <Input
@@ -572,6 +581,16 @@ export default function CalculatorPage() {
                       value={item.invoice_total_value}
                       onChange={(e) => updateItem(item.localId, "invoice_total_value", parseFloat(e.target.value) || 0)}
                       data-testid={`input-invoice-${idx}`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">الرسم المدفوع (USD)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={item.paid_duty}
+                      onChange={(e) => updateItem(item.localId, "paid_duty", parseFloat(e.target.value) || 0)}
+                      data-testid={`input-paid-duty-${idx}`}
                     />
                   </div>
                   <div className="space-y-1">
@@ -686,6 +705,11 @@ export default function CalculatorPage() {
                     lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} د.ع`);
                     lines.push(`  ضريبة مبيعات (5%): ${formatIQD(ri.sales_tax_iqd)} د.ع`);
                     lines.push(`  ضريبة بلدية (2%): ${formatIQD(ri.municipal_tax_iqd)} د.ع`);
+                    lines.push(`  إجمالي رسوم المنتج: ${formatIQD(ri.item_total_iqd)} د.ع`);
+                    if (ri.paid_duty_iqd > 0) {
+                      lines.push(`  المدفوع لهذا المنتج: ${formatIQD(ri.paid_duty_iqd)} د.ع`);
+                      lines.push(`  فرق المنتج: ${formatIQD(ri.item_difference_iqd)} د.ع`);
+                    }
                   });
                   lines.push(`---`);
                   if (result.fees.items.length > 0) {
@@ -793,6 +817,24 @@ export default function CalculatorPage() {
                       <span className="text-muted-foreground">ضريبة بلدية (2%):</span>
                       <span className="font-mono mr-1">{formatIQD(ri.municipal_tax_iqd)} د.ع</span>
                     </div>
+                  </div>
+                  <div className="border-t pt-2 mt-2 space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">إجمالي رسوم المنتج:</span>
+                      <span className="font-mono font-bold">{formatIQD(ri.item_total_iqd)} د.ع</span>
+                    </div>
+                    {ri.paid_duty_iqd > 0 && (
+                      <>
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="text-muted-foreground">المدفوع لهذا المنتج:</span>
+                          <span className="font-mono">{formatIQD(ri.paid_duty_iqd)} د.ع</span>
+                        </div>
+                        <div className={`flex items-center justify-between gap-2 text-xs font-bold rounded-md px-2 py-1 ${ri.item_difference_iqd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                          <span>فرق المنتج:</span>
+                          <span className="font-mono">{formatIQD(ri.item_difference_iqd)} د.ع</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

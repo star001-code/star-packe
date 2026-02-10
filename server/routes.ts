@@ -15,6 +15,7 @@ const calcItemSchema = z.object({
   protection_rate: z.number().min(0).default(0),
   tsc_basis: z.enum(["avg", "min", "max"]).default("avg"),
   goods_category: z.string().optional().default("consumer"),
+  paid_duty: z.number().min(0).default(0),
 });
 
 const calcRequestSchema = z.object({
@@ -194,6 +195,12 @@ export async function registerRoutes(
         const salesTaxIqd = customsValueIqd * 0.05;
         const municipalTaxIqd = (customsValueIqd + dutyIqd) * 0.02;
 
+        const itemTotalIqd = dutyIqd + salesTaxIqd + municipalTaxIqd;
+        const paidDutyIqd = parsed.invoice_currency.toUpperCase() === "IQD"
+          ? (it.paid_duty || 0)
+          : (it.paid_duty || 0) * parsed.fx_rate;
+        const itemDifferenceIqd = itemTotalIqd - paidDutyIqd;
+
         dutySum += dutyIqd;
         salesTaxSum += salesTaxIqd;
         municipalTaxSum += municipalTaxIqd;
@@ -216,6 +223,9 @@ export async function registerRoutes(
           sales_tax_iqd: salesTaxIqd,
           municipal_tax_iqd: municipalTaxIqd,
           goods_category: it.goods_category,
+          item_total_iqd: itemTotalIqd,
+          paid_duty_iqd: paidDutyIqd,
+          item_difference_iqd: itemDifferenceIqd,
         });
       }
 
