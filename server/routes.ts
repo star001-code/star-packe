@@ -15,7 +15,7 @@ const calcItemSchema = z.object({
 
 const calcRequestSchema = z.object({
   checkpoint_id: z.string(),
-  fx_rate: z.number().positive().default(1310),
+  fx_rate: z.number().positive().default(1320),
   invoice_currency: z.string().default("USD"),
   items: z.array(calcItemSchema).min(1),
 });

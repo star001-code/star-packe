@@ -169,7 +169,7 @@ function ProductSearchPopup({
 export default function CalculatorPage() {
   const { toast } = useToast();
   const [checkpointId, setCheckpointId] = useState<string>("");
-  const [fxRate, setFxRate] = useState(1310);
+  const [fxRate, setFxRate] = useState(1320);
   const [items, setItems] = useState<CalcItem[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
