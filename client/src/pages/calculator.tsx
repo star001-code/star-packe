@@ -30,6 +30,28 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+const GOODS_CATEGORIES = [
+  { id: "food_basic", label: "مواد غذائية أساسية", dutyRate: 0.05 },
+  { id: "food_processed", label: "مواد غذائية مصنعة", dutyRate: 0.05 },
+  { id: "medical", label: "أدوية ومستلزمات طبية", dutyRate: 0.05 },
+  { id: "agriculture", label: "مدخلات زراعية", dutyRate: 0.05 },
+  { id: "education", label: "مواد تعليمية", dutyRate: 0.05 },
+  { id: "raw_materials", label: "مواد خام", dutyRate: 0.10 },
+  { id: "industrial", label: "مدخلات صناعية", dutyRate: 0.15 },
+  { id: "construction", label: "مواد بناء", dutyRate: 0.15 },
+  { id: "electronics", label: "إلكترونيات", dutyRate: 0.20 },
+  { id: "clothing", label: "ملابس ومنسوجات", dutyRate: 0.20 },
+  { id: "household", label: "أدوات منزلية", dutyRate: 0.25 },
+  { id: "consumer", label: "سلع استهلاكية عامة", dutyRate: 0.30 },
+  { id: "vehicles", label: "مركبات", dutyRate: 0.30 },
+  { id: "luxury_goods", label: "سلع كمالية", dutyRate: 0.40 },
+  { id: "jewelry", label: "مجوهرات وذهب", dutyRate: 0.50 },
+  { id: "luxury_vehicles", label: "مركبات فاخرة", dutyRate: 0.80 },
+  { id: "tobacco", label: "تبغ وسكائر", dutyRate: 1.00 },
+  { id: "alcohol", label: "مشروبات كحولية", dutyRate: 1.50 },
+  { id: "custom", label: "نسبة مخصصة", dutyRate: 0 },
+];
+
 type Product = {
   id: number;
   hs_code: string;
@@ -56,6 +78,7 @@ type CalcItem = {
   unit: string;
   invoice_total_value: number;
   duty_rate: number;
+  category: string;
   tsc_basis: "avg" | "min" | "max";
   tsc_min: number | null;
   tsc_avg: number | null;
@@ -80,8 +103,19 @@ type CalcResult = {
     customs_value_iqd: number;
     duty_rate: number;
     duty_iqd: number;
+    sales_tax_iqd: number;
+    municipal_tax_iqd: number;
+    reconstruction_tax_iqd: number;
+    goods_category: string;
   }[];
-  summary: { duty_iqd: number; fees_iqd: number; total_payable_iqd: number };
+  summary: {
+    duty_iqd: number;
+    sales_tax_iqd: number;
+    municipal_tax_iqd: number;
+    reconstruction_tax_iqd: number;
+    fees_iqd: number;
+    total_payable_iqd: number;
+  };
 };
 
 function formatIQD(n: number): string {
@@ -211,7 +245,8 @@ export default function CalculatorPage() {
           quantity: 1,
           unit: params.get("unit") || "",
           invoice_total_value: 0,
-          duty_rate: 0.05,
+          duty_rate: 0.30,
+          category: "consumer",
           tsc_basis: "avg",
           tsc_min: null,
           tsc_avg: null,
@@ -255,7 +290,8 @@ export default function CalculatorPage() {
         quantity: 1,
         unit: product.unit || "",
         invoice_total_value: 0,
-        duty_rate: 0.05,
+        duty_rate: 0.30,
+        category: "consumer",
         tsc_basis: "avg",
         tsc_min: product.min_value,
         tsc_avg: product.avg_value,
@@ -269,6 +305,18 @@ export default function CalculatorPage() {
     setItems((prev) =>
       prev.map((it) =>
         it.localId === localId ? { ...it, [field]: value } : it
+      )
+    );
+    setResult(null);
+  };
+
+  const handleCategoryChange = (localId: string, categoryId: string) => {
+    const cat = GOODS_CATEGORIES.find((c) => c.id === categoryId);
+    setItems((prev) =>
+      prev.map((it) =>
+        it.localId === localId
+          ? { ...it, category: categoryId, duty_rate: cat ? cat.dutyRate : it.duty_rate }
+          : it
       )
     );
     setResult(null);
@@ -300,6 +348,7 @@ export default function CalculatorPage() {
         invoice_total_value: it.invoice_total_value,
         duty_rate: it.duty_rate,
         tsc_basis: it.tsc_basis,
+        goods_category: it.category,
       })),
     });
   };
@@ -444,16 +493,23 @@ export default function CalculatorPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">نسبة الرسم</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={item.duty_rate}
-                      onChange={(e) => updateItem(item.localId, "duty_rate", parseFloat(e.target.value) || 0)}
-                      data-testid={`input-duty-rate-${idx}`}
-                    />
+                    <Label className="text-xs">تصنيف البضاعة</Label>
+                    <Select
+                      value={item.category}
+                      onValueChange={(v) => handleCategoryChange(item.localId, v)}
+                      data-testid={`select-category-${idx}`}
+                    >
+                      <SelectTrigger data-testid={`trigger-category-${idx}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GOODS_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.label} ({(cat.dutyRate * 100).toFixed(0)}%)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">أساس التقييم</Label>
@@ -472,6 +528,21 @@ export default function CalculatorPage() {
                     </Select>
                   </div>
                 </div>
+
+                {item.category === "custom" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">نسبة الرسم المخصصة</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={0.01}
+                      value={item.duty_rate}
+                      onChange={(e) => updateItem(item.localId, "duty_rate", parseFloat(e.target.value) || 0)}
+                      data-testid={`input-duty-rate-${idx}`}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -519,6 +590,11 @@ export default function CalculatorPage() {
                     lines.push(`  قيمة TSC: ${formatIQD(ri.tsc_unit_value_iqd)} د.ع / وحدة`);
                     lines.push(`  القيمة المعتمدة: ${formatIQD(ri.valuation_unit_iqd)} د.ع / وحدة`);
                     lines.push(`  الرسم (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_iqd)} د.ع`);
+                    lines.push(`  ضريبة مبيعات (5%): ${formatIQD(ri.sales_tax_iqd)} د.ع`);
+                    lines.push(`  ضريبة بلدية (2%): ${formatIQD(ri.municipal_tax_iqd)} د.ع`);
+                    if (ri.reconstruction_tax_iqd > 0) {
+                      lines.push(`  ضريبة إعمار (3%): ${formatIQD(ri.reconstruction_tax_iqd)} د.ع`);
+                    }
                   });
                   lines.push(`---`);
                   if (result.fees.items.length > 0) {
@@ -527,6 +603,11 @@ export default function CalculatorPage() {
                     });
                   }
                   lines.push(`إجمالي الرسوم: ${formatIQD(result.summary.duty_iqd)} د.ع`);
+                  lines.push(`ضريبة مبيعات: ${formatIQD(result.summary.sales_tax_iqd)} د.ع`);
+                  lines.push(`ضريبة بلدية: ${formatIQD(result.summary.municipal_tax_iqd)} د.ع`);
+                  if (result.summary.reconstruction_tax_iqd > 0) {
+                    lines.push(`ضريبة إعمار: ${formatIQD(result.summary.reconstruction_tax_iqd)} د.ع`);
+                  }
                   lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
                   lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
                   try {
@@ -601,6 +682,20 @@ export default function CalculatorPage() {
                       <span className="text-muted-foreground">الرسم ({(ri.duty_rate * 100).toFixed(0)}%):</span>
                       <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_iqd)} د.ع</span>
                     </div>
+                    <div>
+                      <span className="text-muted-foreground">ضريبة مبيعات (5%):</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.sales_tax_iqd)} د.ع</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ضريبة بلدية (2%):</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.municipal_tax_iqd)} د.ع</span>
+                    </div>
+                    {ri.reconstruction_tax_iqd > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">ضريبة إعمار (3%):</span>
+                        <span className="font-mono mr-1">{formatIQD(ri.reconstruction_tax_iqd)} د.ع</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -623,6 +718,20 @@ export default function CalculatorPage() {
                 <span className="text-muted-foreground">إجمالي الرسوم الكمركية:</span>
                 <span className="font-mono font-bold">{formatIQD(result.summary.duty_iqd)} د.ع</span>
               </div>
+              <div className="flex items-center justify-between text-sm" data-testid="text-sales-tax">
+                <span className="text-muted-foreground">ضريبة المبيعات:</span>
+                <span className="font-mono">{formatIQD(result.summary.sales_tax_iqd)} د.ع</span>
+              </div>
+              <div className="flex items-center justify-between text-sm" data-testid="text-municipal-tax">
+                <span className="text-muted-foreground">ضريبة البلدية:</span>
+                <span className="font-mono">{formatIQD(result.summary.municipal_tax_iqd)} د.ع</span>
+              </div>
+              {result.summary.reconstruction_tax_iqd > 0 && (
+                <div className="flex items-center justify-between text-sm" data-testid="text-reconstruction-tax">
+                  <span className="text-muted-foreground">ضريبة الإعمار:</span>
+                  <span className="font-mono">{formatIQD(result.summary.reconstruction_tax_iqd)} د.ع</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">رسوم المنفذ:</span>
                 <span className="font-mono">{formatIQD(result.summary.fees_iqd)} د.ع</span>

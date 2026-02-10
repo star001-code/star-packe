@@ -17,6 +17,12 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Product detail card has "أضف للحاسبة" button
 - **Feb 2026**: Calculator shows inline TSC reference values (min/avg/max) per item
 - **Feb 2026**: Calculator results have copy summary and reset buttons
+- **Feb 2026**: TSC values converted to IQD (×1000), calculation logic compares invoice IQD vs TSC IQD
+- **Feb 2026**: Added Iraqi Customs logo to sidebar header and home page
+- **Feb 2026**: Added goods category system with 19 predefined Iraqi tariff categories (food 5%, industrial 15%, consumer 30%, luxury 40-80%, tobacco/alcohol 100-150%)
+- **Feb 2026**: Added additional taxes: sales tax (5%), municipal tax (2%), reconstruction tax (3% luxury only)
+- **Feb 2026**: Updated checkpoint data with 6 fee types each (SONAR, XRAY, WEIGHING, STAMP, PERMIT, DOCS)
+- **Feb 2026**: Checkpoints now re-seed on every startup to keep data fresh
 
 ## System Architecture
 

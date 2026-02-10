@@ -11,6 +11,7 @@ const calcItemSchema = z.object({
   invoice_total_value: z.number().min(0),
   duty_rate: z.number().min(0),
   tsc_basis: z.enum(["avg", "min", "max"]).default("avg"),
+  goods_category: z.string().optional().default("consumer"),
 });
 
 const calcRequestSchema = z.object({
@@ -143,6 +144,10 @@ export async function registerRoutes(
       const feesTotal = cp.fees.reduce((s, f) => s + (f.amountIqd || 0), 0);
       const itemsOut: any[] = [];
       let dutySum = 0;
+      let salesTaxSum = 0;
+      let municipalTaxSum = 0;
+      let reconstructionTaxSum = 0;
+      const luxuryCategories = ["luxury_goods", "jewelry", "luxury_vehicles"];
 
       for (const it of parsed.items) {
         const hs = normHs(it.hs_code);
@@ -175,8 +180,17 @@ export async function registerRoutes(
         const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
         const customsValueIqd = valuationUnitIqd * it.quantity;
         const dutyIqd = customsValueIqd * it.duty_rate;
+        const salesTaxIqd = customsValueIqd * 0.05;
+        const municipalTaxIqd = customsValueIqd * 0.02;
+        const reconstructionTaxIqd = luxuryCategories.includes(it.goods_category)
+          ? customsValueIqd * 0.03
+          : 0;
 
         dutySum += dutyIqd;
+        salesTaxSum += salesTaxIqd;
+        municipalTaxSum += municipalTaxIqd;
+        reconstructionTaxSum += reconstructionTaxIqd;
+
         itemsOut.push({
           hs_code: hs,
           description: desc,
@@ -191,6 +205,10 @@ export async function registerRoutes(
           customs_value_iqd: customsValueIqd,
           duty_rate: it.duty_rate,
           duty_iqd: dutyIqd,
+          sales_tax_iqd: salesTaxIqd,
+          municipal_tax_iqd: municipalTaxIqd,
+          reconstruction_tax_iqd: reconstructionTaxIqd,
+          goods_category: it.goods_category,
         });
       }
 
@@ -204,8 +222,11 @@ export async function registerRoutes(
         items: itemsOut,
         summary: {
           duty_iqd: dutySum,
+          sales_tax_iqd: salesTaxSum,
+          municipal_tax_iqd: municipalTaxSum,
+          reconstruction_tax_iqd: reconstructionTaxSum,
           fees_iqd: feesTotal,
-          total_payable_iqd: dutySum + feesTotal,
+          total_payable_iqd: dutySum + salesTaxSum + municipalTaxSum + reconstructionTaxSum + feesTotal,
         },
       });
     } catch (e: any) {
