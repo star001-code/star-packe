@@ -11,11 +11,12 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Package, Info, LogIn, LogOut, Calculator } from "lucide-react";
+import { Home, Package, Info, LogIn, LogOut, Calculator, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
+  { title: "الرئيسية", url: "/", icon: Home },
   { title: "المنتجات", url: "/search", icon: Package },
   { title: "الحاسبة", url: "/calculator", icon: Calculator },
   { title: "حول النظام", url: "/about", icon: Info },
@@ -24,6 +25,11 @@ const menuItems = [
 export function AppSidebar() {
   const [location, navigate] = useLocation();
   const { user, isLoggedIn, logout } = useAuth();
+
+  const isActive = (url: string) => {
+    if (url === "/") return location === "/";
+    return location.startsWith(url);
+  };
 
   return (
     <Sidebar side="right" collapsible="icon">
@@ -47,8 +53,8 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === item.url}
-                    data-testid={`link-${item.url.slice(1)}`}
+                    isActive={isActive(item.url)}
+                    data-testid={`link-${item.url === "/" ? "home" : item.url.slice(1)}`}
                   >
                     <a
                       href={item.url}
@@ -70,9 +76,14 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         {isLoggedIn ? (
           <div className="space-y-2 group-data-[collapsible=icon]:hidden">
-            <p className="text-xs text-muted-foreground truncate px-1" data-testid="text-username">
-              {user?.username}
-            </p>
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted shrink-0">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground truncate" data-testid="text-username">
+                {user?.username}
+              </p>
+            </div>
             <Button
               variant="ghost"
               size="sm"

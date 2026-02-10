@@ -12,6 +12,11 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Added session-based authentication (express-session + bcryptjs + connect-pg-simple)
 - **Feb 2026**: Re-extracted TSC PDF data achieving 10,488 products (from 9,434 previously)
 - **Feb 2026**: Added right-side sidebar navigation using shadcn Sidebar component
+- **Feb 2026**: Added dashboard home page with stats, navigation cards, checkpoints list
+- **Feb 2026**: HS code links navigate to calculator with product pre-filled
+- **Feb 2026**: Product detail card has "أضف للحاسبة" button
+- **Feb 2026**: Calculator shows inline TSC reference values (min/avg/max) per item
+- **Feb 2026**: Calculator results have copy summary and reset buttons
 
 ## System Architecture
 
@@ -26,10 +31,11 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
 
 ### Pages
+- `/` — Dashboard home page with stats, quick navigation cards, checkpoints list, how-it-works guide
 - `/login` — Login/Register page with username/password form (shadcn Form + Zod validation)
-- `/search` — Product search by HS code or description, results table with product details
+- `/search` — Product browsing with paginated table (50/page), search by HS code or description, product detail card with "أضف للحاسبة" button, HS code links to calculator
+- `/calculator` — Customs duty calculator with checkpoint/FX selection, product items with inline TSC values, copy summary and reset buttons
 - `/about` — System information, database stats, calculation methodology
-- `/` — Redirects to `/search`
 - Navigation via right-side Sidebar (AppSidebar component)
 
 ### Backend
