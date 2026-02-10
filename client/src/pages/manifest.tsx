@@ -27,6 +27,7 @@ type ExtractedItem = {
   total_value: number;
   unit: string;
   duty_amount: number;
+  duty_rate: number;
 };
 
 type ExtractionResult = {
@@ -370,6 +371,9 @@ export default function ManifestPage() {
                         )}
                         {item.duty_amount > 0 && (
                           <span>الرسم: <span className="font-mono">${formatUSD(item.duty_amount)}</span></span>
+                        )}
+                        {item.duty_rate > 0 && (
+                          <span>النسبة: <span className="font-mono">{(item.duty_rate * 100).toFixed(0)}%</span></span>
                         )}
                       </div>
                     </div>

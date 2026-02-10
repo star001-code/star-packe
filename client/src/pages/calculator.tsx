@@ -279,9 +279,13 @@ export default function CalculatorPage() {
             quantity: Number(p.quantity) || 1,
             unit: String(p.unit || ""),
             invoice_total_value: Number(p.total_value) || 0,
-            duty_rate: 0.30,
+            duty_rate: Number(p.duty_rate) > 0 ? Number(p.duty_rate) : 0.30,
             protection_rate: 0,
-            category: "consumer",
+            category: Number(p.duty_rate) > 0
+              ? (GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
+                  Math.abs(c.dutyRate - Number(p.duty_rate)) < Math.abs(best.dutyRate - Number(p.duty_rate)) ? c : best
+                ).id)
+              : "consumer",
             tsc_basis: "avg" as const,
             tsc_min: null,
             tsc_avg: null,
