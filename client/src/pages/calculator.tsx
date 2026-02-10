@@ -217,6 +217,7 @@ export default function CalculatorPage() {
   const [result, setResult] = useState<CalcResult | null>(null);
   const [paidAmount, setPaidAmount] = useState(0);
   const prefilled = useRef(false);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const fetchTscValues = async (hsCode: string) => {
     try {
@@ -340,6 +341,9 @@ export default function CalculatorPage() {
     },
     onSuccess: (data) => {
       setResult(data);
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     },
     onError: (err: Error) => {
       let msg = err.message;
@@ -684,7 +688,7 @@ export default function CalculatorPage() {
       )}
 
       {result && (
-        <Card data-testid="card-result">
+        <Card ref={resultRef} data-testid="card-result">
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Receipt className="h-4 w-4" />
