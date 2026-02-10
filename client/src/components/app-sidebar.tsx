@@ -11,7 +11,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, Package, Info, LogIn, LogOut, Calculator, User } from "lucide-react";
+import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import logoImg from "@assets/IMG_2293_1770690757765.png";
@@ -20,6 +20,7 @@ const menuItems = [
   { title: "الرئيسية", url: "/", icon: Home },
   { title: "المنتجات", url: "/search", icon: Package },
   { title: "الحاسبة", url: "/calculator", icon: Calculator },
+  { title: "قراءة المنفست", url: "/manifest", icon: FileImage },
   { title: "حول النظام", url: "/about", icon: Info },
 ];
 
