@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import logoImg from "@assets/IMG_2293_1770690757765.png";
 
 type StatsData = {
   rows_total: number;
@@ -70,13 +71,21 @@ export default function Home() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" data-testid="text-home-title">
-          حاسبة فرق الرسم الكمركي
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          نظام حساب الرسوم الكمركية للمنافذ الحدودية العراقية
-        </p>
+      <div className="flex items-center gap-4">
+        <img
+          src={logoImg}
+          alt="الكمارك العراقية"
+          className="h-14 w-auto object-contain shrink-0"
+          data-testid="img-logo-home"
+        />
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-home-title">
+            حاسبة فرق الرسم الكمركي
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            نظام حساب الرسوم الكمركية للمنافذ الحدودية العراقية
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

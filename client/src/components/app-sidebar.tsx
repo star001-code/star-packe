@@ -14,6 +14,7 @@ import {
 import { Home, Package, Info, LogIn, LogOut, Calculator, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import logoImg from "@assets/IMG_2293_1770690757765.png";
 
 const menuItems = [
   { title: "الرئيسية", url: "/", icon: Home },
@@ -35,9 +36,12 @@ export function AppSidebar() {
     <Sidebar side="right" collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground shrink-0">
-            <Calculator className="h-5 w-5" />
-          </div>
+          <img
+            src={logoImg}
+            alt="الكمارك العراقية"
+            className="h-9 w-auto shrink-0 object-contain"
+            data-testid="img-logo-sidebar"
+          />
           <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold truncate">الحاسبة الكمركية</span>
             <span className="text-xs text-muted-foreground truncate">فرق الرسم - العراق</span>
