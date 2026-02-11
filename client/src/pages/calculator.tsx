@@ -618,13 +618,13 @@ export default function CalculatorPage() {
                   <div className="flex items-center gap-3 text-xs flex-wrap" data-testid={`tsc-values-${idx}`}>
                     <span className="text-muted-foreground">TSC:</span>
                     {item.tsc_min !== null && (
-                      <span className="text-blue-400">أدنى <span className="font-mono">{item.tsc_min.toLocaleString()} د.ع</span></span>
+                      <span className="text-blue-400">أدنى <span className="font-mono">{Math.round(item.tsc_min).toLocaleString()} د.ع</span></span>
                     )}
                     {item.tsc_avg !== null && (
-                      <span className="text-emerald-400">متوسط <span className="font-mono">{item.tsc_avg.toLocaleString()} د.ع</span></span>
+                      <span className="text-emerald-400">متوسط <span className="font-mono">{Math.round(item.tsc_avg).toLocaleString()} د.ع</span></span>
                     )}
                     {item.tsc_max !== null && (
-                      <span className="text-amber-400">أقصى <span className="font-mono">{item.tsc_max.toLocaleString()} د.ع</span></span>
+                      <span className="text-amber-400">أقصى <span className="font-mono">{Math.round(item.tsc_max).toLocaleString()} د.ع</span></span>
                     )}
                   </div>
                 )}
