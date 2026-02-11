@@ -301,11 +301,14 @@ export default function CalculatorPage() {
 
         if (manifestItems.length > 0) {
           const newItems: CalcItem[] = manifestItems.map((p: any) => {
-            const matchedCatId = Number(p.duty_rate) > 0
-              ? (GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
-                  Math.abs(c.dutyRate - Number(p.duty_rate)) < Math.abs(best.dutyRate - Number(p.duty_rate)) ? c : best
-                ).id)
-              : "consumer";
+            let matchedCatId = "consumer";
+            if (p.goods_category && GOODS_CATEGORIES.some(c => c.id === p.goods_category)) {
+              matchedCatId = p.goods_category;
+            } else if (Number(p.duty_rate) > 0) {
+              matchedCatId = GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
+                Math.abs(c.dutyRate - Number(p.duty_rate)) < Math.abs(best.dutyRate - Number(p.duty_rate)) ? c : best
+              ).id;
+            }
             const cat = GOODS_CATEGORIES.find(c => c.id === matchedCatId);
             return {
               localId: nextId(),
