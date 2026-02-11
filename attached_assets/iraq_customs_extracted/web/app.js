@@ -38,25 +38,48 @@ async function doSearch(){
   res.forEach(r=>{
     const div=document.createElement('div');
     div.className='result';
-    div.innerHTML = `
-      <div class="top">
-        <div>
-          <div><span class="badge">HS: ${esc(r.hs_code||'')}</span></div>
-          <div class="desc">${esc(r.description||'')}</div>
-          <div class="meta">
-            <span>unit: <code>${esc(r.unit||'')}</code></span>
-            <span>min: <code>${fmt(r.min_value)}</code></span>
-            <span>avg: <code>${fmt(r.avg_value)}</code></span>
-            <span>max: <code>${fmt(r.max_value)}</code></span>
-          </div>
-        </div>
-        <button class="btn secondary">استخدام</button>
-      </div>`;
-    div.querySelector('button').addEventListener('click', ()=>{
+
+    const top=document.createElement('div');
+    top.className='top';
+
+    const info=document.createElement('div');
+
+    const hsDiv=document.createElement('div');
+    const badge=document.createElement('span');
+    badge.className='badge';
+    badge.textContent='HS: '+(r.hs_code||'');
+    hsDiv.appendChild(badge);
+    info.appendChild(hsDiv);
+
+    const descDiv=document.createElement('div');
+    descDiv.className='desc';
+    descDiv.textContent=r.description||'';
+    info.appendChild(descDiv);
+
+    const meta=document.createElement('div');
+    meta.className='meta';
+    [['unit',r.unit||''],['min',fmt(r.min_value)],['avg',fmt(r.avg_value)],['max',fmt(r.max_value)]].forEach(([label,val])=>{
+      const span=document.createElement('span');
+      span.textContent=label+': ';
+      const code=document.createElement('code');
+      code.textContent=val;
+      span.appendChild(code);
+      meta.appendChild(span);
+    });
+    info.appendChild(meta);
+
+    const btn=document.createElement('button');
+    btn.className='btn secondary';
+    btn.textContent='استخدام';
+    btn.addEventListener('click', ()=>{
       $('hs').value = r.hs_code||'';
       $('unit').value = r.unit||'';
       $('q').value=''; wrap.innerHTML='';
     });
+
+    top.appendChild(info);
+    top.appendChild(btn);
+    div.appendChild(top);
     wrap.appendChild(div);
   });
 }
