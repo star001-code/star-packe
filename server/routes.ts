@@ -352,6 +352,310 @@ export async function registerRoutes(
     }
   });
 
+  const goodsCategories = [
+    "food_basic", "food_processed", "medical", "agriculture", "education",
+    "solar", "raw_materials", "computers", "industrial", "construction",
+    "electrical", "vehicles", "electronics", "smartphones", "clothing",
+    "household", "consumer", "luxury_goods", "jewelry", "machinery",
+    "cleaning", "tobacco", "alcohol"
+  ];
+
+  const systemPrompt = `You are a senior Iraqi customs document analyst (محلل وثائق كمركية عراقي) with deep expertise in reading and extracting data from all types of Iraqi customs and trade documents. You have extensive knowledge of:
+
+## Document Types You May Encounter
+- بيان الإدخال / التصريحة الكمركية (Customs Entry Declaration / Import Manifest)
+- فاتورة تجارية (Commercial Invoice)
+- أمر تسليم (Delivery Order)
+- إجازة استيراد (Import License)
+- شهادة المنشأ (Certificate of Origin)
+- بيان كمركي موحد (Unified Customs Declaration)
+
+## Iraqi Customs Document Structure
+Iraqi customs declarations typically contain the following sections. Look for these Arabic labels carefully:
+
+### Header Section (أعلى المستند)
+- رقم البيان / رقم التصريحة (Declaration Number) - usually a numeric ID at the top
+- تاريخ البيان (Declaration Date) - date in DD/MM/YYYY or YYYY/MM/DD format
+- اسم المنفذ / المنفذ الكمركي / كود المنفذ / دائرة الكمارك (Customs Checkpoint/Border Crossing)
+- اسم المستورد / صاحب البضاعة / المخلص الكمركي (Importer Name)
+- بلد المنشأ / بلد التصدير (Country of Origin/Export)
+- نوع العملة / العملة (Currency Type - USD, EUR, GBP, TRY, CNY, AED, etc.)
+- سعر الصرف (Exchange Rate to IQD)
+- عدد الطرود / عدد القطع (Number of Packages/Pieces)
+- طريقة النقل (Transport Method): بري (Land), بحري (Sea), جوي (Air)
+- رقم الحاوية / رقم الشاحنة (Container/Truck Number)
+
+### Items Table (جدول البضائع)
+The main table contains line items. Each row typically has these columns:
+- ت / التسلسل / رقم (Sequence/Item Number)
+- رمز HS / الرمز المنسق / التعرفة (HS Code / Harmonized System Code)
+- وصف البضاعة / اسم المادة (Goods Description)
+- الكمية / العدد (Quantity)
+- الوحدة (Unit - KG, PCS, MT, LTR, SET, etc.)
+- سعر الوحدة / قيمة الوحدة (Unit Price/Value)
+- القيمة الكلية / المجموع / التعمئة / م. الكمية (Total Value)
+- نسبة الرسم / نسبة التعرفة / % (Duty Rate Percentage)
+- مبلغ الرسم / الرسم (Duty Amount)
+- بلد المنشأ (Country of Origin per item, if specified per line)
+
+### Summary/Totals Section (قسم المجاميع - usually at bottom)
+- مجموع القيمة / إجمالي القيمة (Total Value)
+- مجموع الرسوم / إجمالي الرسم الكمركي (Total Customs Duty)
+- ضريبة المبيعات (Sales Tax)
+- الرسم البلدي (Municipal Tax)
+- الأمانة الضريبية (Tax Deposit)
+- المجموع الكلي / الإجمالي (Grand Total Payable)
+- المبلغ المدفوع (Amount Paid)
+
+## CRITICAL Reading Instructions
+
+1. **Read EVERY row in the items table.** Do NOT skip any line. Even if rows look similar, each one must be extracted separately. Count the rows carefully.
+
+2. **Number Format Handling:** Iraqi documents may use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩) alongside or instead of Latin numerals (0123456789). Convert all Arabic-Indic numerals to their Latin equivalents:
+   ٠=0, ١=1, ٢=2, ٣=3, ٤=4, ٥=5, ٦=6, ٧=7, ٨=8, ٩=9
+
+3. **Handwritten vs Printed Text:** Some fields may be handwritten (especially quantities, values, stamps, signatures). Read handwritten numbers and text carefully. If a handwritten value conflicts with a printed value, prefer the handwritten value as it is usually the correction.
+
+4. **HS Code Format:** Iraqi HS codes are typically 8-10 digits long (e.g., 84713000, 8471300000). Sometimes they appear with dots (8471.30.00) or spaces. Extract the full code without separators. If a shorter code is shown (4 or 6 digits), still extract it as-is.
+
+5. **Duty Rate:** Look for percentage columns (% or نسبة). Convert percentages to decimals: 5% → 0.05, 15% → 0.15, 30% → 0.30. If the rate is shown as a whole number in a percentage column, divide by 100.
+
+6. **Summary Totals:** Always check the bottom of the document for summary/total rows. These contain the aggregate duty, taxes, and total payable amounts.
+
+7. **Goods Category Classification:** For each item, based on its Arabic description, classify it into ONE of these categories: ${goodsCategories.join(", ")}. Use your best judgment:
+   - Food items (rice, sugar, flour, oil, tea) → food_basic
+   - Processed food (canned goods, snacks, beverages) → food_processed
+   - Medicine, medical devices → medical
+   - Seeds, fertilizer, livestock → agriculture
+   - Books, stationery, school supplies → education
+   - Solar panels, batteries → solar
+   - Raw metals, chemicals, plastics → raw_materials
+   - Computers, laptops, printers → computers
+   - Factory equipment, tools → industrial
+   - Cement, steel, building materials → construction
+   - Wiring, switches, electrical components → electrical
+   - Cars, trucks, spare parts → vehicles
+   - TVs, radios, audio equipment → electronics
+   - Mobile phones, tablets → smartphones
+   - Textiles, garments, shoes → clothing
+   - Furniture, kitchenware → household
+   - General consumer goods → consumer
+   - Perfumes, cosmetics, watches → luxury_goods
+   - Gold, silver, precious stones → jewelry
+   - Heavy machinery, generators → machinery
+   - Detergents, soaps → cleaning
+   - Cigarettes, tobacco products → tobacco
+   - Alcoholic beverages → alcohol
+
+## Required JSON Output Format
+
+Return ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact structure:
+
+{
+  "declaration_number": "string or empty string if not found",
+  "declaration_date": "string in YYYY-MM-DD format or empty string",
+  "checkpoint": "string - customs checkpoint name in Arabic",
+  "importer_name": "string or empty string",
+  "origin_country": "string - country name or empty string",
+  "currency": "string - ISO currency code like USD, EUR, TRY, etc.",
+  "fx_rate": 0,
+  "total_packages": 0,
+  "transport_method": "string - بري or بحري or جوي or empty string",
+  "container_number": "string or empty string",
+  "duty_paid_usd": 0,
+  "tax_paid_usd": 0,
+  "total_value_usd": 0,
+  "items": [
+    {
+      "item_number": 1,
+      "hs_code": "string",
+      "description": "string in Arabic",
+      "quantity": 0,
+      "unit": "string",
+      "unit_value": 0,
+      "total_value": 0,
+      "duty_rate": 0.0,
+      "duty_amount": 0,
+      "origin": "string - country of origin for this item or empty string",
+      "goods_category": "string - one of the allowed categories"
+    }
+  ]
+}
+
+## Example of a Good Extraction
+
+Given a typical Iraqi customs declaration, a correct extraction would look like:
+{
+  "declaration_number": "2024/15234",
+  "declaration_date": "2024-11-15",
+  "checkpoint": "منفذ إبراهيم الخليل",
+  "importer_name": "شركة النور للتجارة العامة",
+  "origin_country": "تركيا",
+  "currency": "USD",
+  "fx_rate": 1320,
+  "total_packages": 450,
+  "transport_method": "بري",
+  "container_number": "MSKU7234567",
+  "duty_paid_usd": 3500,
+  "tax_paid_usd": 1200,
+  "total_value_usd": 45000,
+  "items": [
+    {
+      "item_number": 1,
+      "hs_code": "84713000",
+      "description": "حاسبات محمولة ماركة لينوفو",
+      "quantity": 200,
+      "unit": "PCS",
+      "unit_value": 150,
+      "total_value": 30000,
+      "duty_rate": 0.05,
+      "duty_amount": 1500,
+      "origin": "الصين",
+      "goods_category": "computers"
+    },
+    {
+      "item_number": 2,
+      "hs_code": "85171200",
+      "description": "هواتف نقالة سامسونج",
+      "quantity": 500,
+      "unit": "PCS",
+      "unit_value": 30,
+      "total_value": 15000,
+      "duty_rate": 0.05,
+      "duty_amount": 750,
+      "origin": "كوريا الجنوبية",
+      "goods_category": "smartphones"
+    }
+  ]
+}
+
+If a field is not visible or unclear, use reasonable defaults (empty string for text, 0 for numbers). Extract ALL items/lines visible in the document - do not skip any row.`;
+
+  function normalizeManifestResponse(parsed: any) {
+    let items: any[] = [];
+    if (Array.isArray(parsed)) {
+      items = parsed;
+    } else if (parsed.items && Array.isArray(parsed.items)) {
+      items = parsed.items;
+    } else {
+      items = [parsed];
+    }
+
+    const normalized = items.map((item: any, idx: number) => ({
+      item_number: Number(item.item_number) || idx + 1,
+      hs_code: String(item.hs_code || "").replace(/[^\d]/g, "").trim(),
+      description: String(item.description || "").trim(),
+      quantity: Number(item.quantity) || 1,
+      unit_value: Number(item.unit_value) || 0,
+      total_value: Number(item.total_value) || 0,
+      unit: String(item.unit || "").trim().toUpperCase(),
+      duty_amount: Number(item.duty_amount) || 0,
+      duty_rate: Number(item.duty_rate) || 0,
+      origin: String(item.origin || "").trim(),
+      goods_category: goodsCategories.includes(String(item.goods_category || ""))
+        ? String(item.goods_category)
+        : "consumer",
+    }));
+
+    const checkpointName = String(parsed.checkpoint || "").trim();
+    const declarationNumber = String(parsed.declaration_number || "").trim();
+    const declarationDate = String(parsed.declaration_date || "").trim();
+    const importerName = String(parsed.importer_name || "").trim();
+    const originCountry = String(parsed.origin_country || "").trim();
+    const currency = String(parsed.currency || "USD").trim().toUpperCase();
+    const fxRate = Number(parsed.fx_rate) || 0;
+    const totalPackages = Number(parsed.total_packages) || 0;
+    const transportMethod = String(parsed.transport_method || "").trim();
+    const containerNumber = String(parsed.container_number || "").trim();
+    const dutyPaidUsd = Number(parsed.duty_paid_usd) || 0;
+    const taxPaidUsd = Number(parsed.tax_paid_usd) || 0;
+    const totalValueUsd = Number(parsed.total_value_usd) || 0;
+    const totalPaidUsd = dutyPaidUsd + taxPaidUsd;
+
+    return {
+      declaration_number: declarationNumber,
+      declaration_date: declarationDate,
+      checkpoint: checkpointName,
+      importer_name: importerName,
+      origin_country: originCountry,
+      currency: currency,
+      fx_rate: fxRate,
+      total_packages: totalPackages,
+      transport_method: transportMethod,
+      container_number: containerNumber,
+      paid_amount_usd: totalPaidUsd,
+      duty_paid_usd: dutyPaidUsd,
+      tax_paid_usd: taxPaidUsd,
+      total_value_usd: totalValueUsd,
+      items: normalized,
+    };
+  }
+
+  function parseManifestContent(content: string) {
+    const cleaned = content
+      .replace(/```json\s*/g, "")
+      .replace(/```\s*/g, "")
+      .trim();
+    return JSON.parse(cleaned);
+  }
+
+  app.post("/api/manifest/extract-multi", upload.array("images", 5), async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No images uploaded" });
+      }
+
+      const imageContentParts = files.map((file) => ({
+        type: "image_url" as const,
+        image_url: {
+          url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
+          detail: "high" as const,
+        },
+      }));
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "This customs document has multiple pages. Extract ALL data from ALL pages as a single unified document. Read every page and combine all items into one items array. Return ONLY a JSON object.",
+              },
+              ...imageContentParts,
+            ],
+          },
+        ],
+        max_tokens: 8192,
+        temperature: 0.1,
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+
+      let parsed: any = {};
+      try {
+        parsed = parseManifestContent(content);
+      } catch {
+        return res
+          .status(422)
+          .json({ error: "Could not parse extracted data", raw: content });
+      }
+
+      res.json(normalizeManifestResponse(parsed));
+    } catch (e: any) {
+      console.error("Multi-image manifest extraction error:", e);
+      res
+        .status(500)
+        .json({ error: e.message || "Failed to extract manifest data" });
+    }
+  });
+
   app.post("/api/manifest/extract", upload.single("image"), async (req, res) => {
     try {
       const file = req.file;
@@ -367,33 +671,14 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: `You are an expert at reading Iraqi customs manifests (التصريحة الكمركية), invoices, and commercial documents. Extract ALL data from the uploaded image. Return ONLY a valid JSON object (no markdown, no code fences) with this structure:
-{
-  "checkpoint": "string - the customs checkpoint/border crossing name in Arabic (e.g. إبراهيم خليل, الموصل, دارمان). Look for كود المنفذ or المنفذ الكمركي or دائرة الكمارك",
-  "duty_paid_usd": number - the total duty/fees already paid in USD. Look for الرسم or الرسوم field showing a dollar amount,
-  "tax_paid_usd": number - the tax amount paid in USD. Look for الضريبة field,
-  "total_value_usd": number - the total invoice/goods value in USD. Look for القيمة or المجموع,
-  "items": [
-    {
-      "hs_code": "string - the tariff/HS code (رمز HS)",
-      "description": "string - product name/description in Arabic",
-      "quantity": number,
-      "unit_value": number - per-unit value in USD,
-      "total_value": number - total line value in USD (look for التعمئة or م. الكمية columns),
-      "unit": "string - unit of measurement (الوحدة) like KG, PCS, etc",
-      "duty_amount": number - the duty/fee amount for this line item (الرسم column) in the document currency,
-      "duty_rate": number - the duty rate percentage for this item as a decimal (e.g. 0.05 for 5%, 0.30 for 30%). Look for نسبة الرسم or نسبة التعرفة or % column. If you see a percentage like 5% use 0.05, 15% use 0.15, 30% use 0.30 etc. If not found, use 0
-    }
-  ]
-}
-If a field is not visible or unclear, use reasonable defaults (empty string for text, 0 for numbers). Extract ALL items/lines you can see in the document. Pay special attention to the numbers in the summary section at the bottom of the document.`,
+            content: systemPrompt,
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extract all data from this Iraqi customs document/manifest image including checkpoint name, amounts paid, and all product items. Return ONLY a JSON object.",
+                text: "Extract ALL data from this Iraqi customs document image. Read every single row in the items table carefully. Convert any Arabic-Indic numerals to Latin. Return ONLY a JSON object matching the specified schema.",
               },
               {
                 type: "image_url",
@@ -405,7 +690,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
             ],
           },
         ],
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.1,
       });
 
@@ -413,56 +698,56 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
 
       let parsed: any = {};
       try {
-        const cleaned = content
-          .replace(/```json\s*/g, "")
-          .replace(/```\s*/g, "")
-          .trim();
-        parsed = JSON.parse(cleaned);
+        parsed = parseManifestContent(content);
       } catch {
         return res
           .status(422)
           .json({ error: "Could not parse extracted data", raw: content });
       }
 
-      let items: any[] = [];
-      if (Array.isArray(parsed)) {
-        items = parsed;
-      } else if (parsed.items && Array.isArray(parsed.items)) {
-        items = parsed.items;
-      } else {
-        items = [parsed];
-      }
-
-      const normalized = items.map((item: any) => ({
-        hs_code: String(item.hs_code || "").trim(),
-        description: String(item.description || "").trim(),
-        quantity: Number(item.quantity) || 1,
-        unit_value: Number(item.unit_value) || 0,
-        total_value: Number(item.total_value) || 0,
-        unit: String(item.unit || "").trim(),
-        duty_amount: Number(item.duty_amount) || 0,
-        duty_rate: Number(item.duty_rate) || 0,
-      }));
-
-      const checkpointName = String(parsed.checkpoint || "").trim();
-      const dutyPaidUsd = Number(parsed.duty_paid_usd) || 0;
-      const taxPaidUsd = Number(parsed.tax_paid_usd) || 0;
-      const totalValueUsd = Number(parsed.total_value_usd) || 0;
-      const totalPaidUsd = dutyPaidUsd + taxPaidUsd;
-
-      res.json({
-        checkpoint: checkpointName,
-        paid_amount_usd: totalPaidUsd,
-        duty_paid_usd: dutyPaidUsd,
-        tax_paid_usd: taxPaidUsd,
-        total_value_usd: totalValueUsd,
-        items: normalized,
-      });
+      res.json(normalizeManifestResponse(parsed));
     } catch (e: any) {
       console.error("Manifest extraction error:", e);
       res
         .status(500)
         .json({ error: e.message || "Failed to extract manifest data" });
+    }
+  });
+
+  app.post("/api/manifest/validate-hs", async (req, res) => {
+    try {
+      const { hs_codes } = req.body;
+      if (!Array.isArray(hs_codes) || hs_codes.length === 0) {
+        return res.status(400).json({ error: "hs_codes must be a non-empty array of strings" });
+      }
+
+      const results: Record<string, { found: boolean; description?: string; unit?: string; min_value?: number; avg_value?: number; max_value?: number }> = {};
+
+      for (const code of hs_codes) {
+        const hs = normHs(String(code));
+        if (!hs) {
+          results[String(code)] = { found: false };
+          continue;
+        }
+        const rows = await storage.getProductsByHsCode(hs, undefined, 1);
+        if (rows.length > 0) {
+          const row = rows[0];
+          results[hs] = {
+            found: true,
+            description: row.description || undefined,
+            unit: row.unit || undefined,
+            min_value: row.minValue ?? undefined,
+            avg_value: row.avgValue ?? undefined,
+            max_value: row.maxValue ?? undefined,
+          };
+        } else {
+          results[hs] = { found: false };
+        }
+      }
+
+      res.json({ results });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

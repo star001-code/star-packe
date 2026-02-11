@@ -36,6 +36,13 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Calculator results show per-item "فرق المنتج" (item difference) with color coding (red=underpaid, green=overpaid)
 - **Feb 2026**: Added "منفذ دهوك" checkpoint with 6 fee types (total 120,000 IQD)
 - **Feb 2026**: Copy summary includes per-item breakdowns and differences
+- **Feb 2026**: Major manifest reading upgrade: comprehensive AI prompt with Iraqi customs document structure knowledge, Arabic-Indic numeral handling, handwritten text support
+- **Feb 2026**: Manifest now extracts 10+ metadata fields: declaration number, date, importer, origin country, currency, FX rate, packages, transport method, container number
+- **Feb 2026**: Multi-image manifest upload (up to 5 pages) with thumbnail previews and per-image removal
+- **Feb 2026**: HS code auto-validation against TSC database after extraction with visual indicators
+- **Feb 2026**: Professional manifest UI with editable items table, document metadata grid, financial summary cards
+- **Feb 2026**: AI auto-classifies goods into 23 Iraqi tariff categories (food, industrial, consumer, luxury, etc.)
+- **Feb 2026**: Calculator now accepts goods_category directly from manifest extraction
 
 ## System Architecture
 
