@@ -100,19 +100,36 @@ function render(){
   const tb=$('tbody'); tb.innerHTML='';
   state.items.forEach((it,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td><code>${esc(it.hs_code)}</code></td>
-      <td>${esc(it.description||'')}</td>
-      <td>${fmt(it.quantity)}</td>
-      <td>${esc(it.unit||'')}</td>
-      <td>${fmt(it.invoice_unit_value||0)}</td>
-      <td>${fmt(it.tsc_unit_value||0)}</td>
-      <td><strong>${fmt(it.valuation_unit_value||0)}</strong></td>
-      <td>${fmt(it.customs_value_iqd||0)}</td>
-      <td>${fmt(it.duty_iqd||0)}</td>
-      <td><button class="btn danger smallbtn" data-del="${i}">حذف</button></td>
-    `;
+    const cells = [
+      { text: String(i+1) },
+      { text: it.hs_code, tag: 'code' },
+      { text: it.description||'' },
+      { text: fmt(it.quantity) },
+      { text: it.unit||'' },
+      { text: fmt(it.invoice_unit_value||0) },
+      { text: fmt(it.tsc_unit_value||0) },
+      { text: fmt(it.valuation_unit_value||0), tag: 'strong' },
+      { text: fmt(it.customs_value_iqd||0) },
+      { text: fmt(it.duty_iqd||0) },
+    ];
+    cells.forEach(c=>{
+      const td=document.createElement('td');
+      if(c.tag){
+        const el=document.createElement(c.tag);
+        el.textContent=c.text;
+        td.appendChild(el);
+      } else {
+        td.textContent=c.text;
+      }
+      tr.appendChild(td);
+    });
+    const delTd=document.createElement('td');
+    const delBtn=document.createElement('button');
+    delBtn.className='btn danger smallbtn';
+    delBtn.dataset.del=String(i);
+    delBtn.textContent='حذف';
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
     tb.appendChild(tr);
   });
   tb.querySelectorAll('button[data-del]').forEach(b=>{
