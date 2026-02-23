@@ -43,6 +43,11 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Professional manifest UI with editable items table, document metadata grid, financial summary cards
 - **Feb 2026**: AI auto-classifies goods into 23 Iraqi tariff categories (food, industrial, consumer, luxury, etc.)
 - **Feb 2026**: Calculator now accepts goods_category directly from manifest extraction
+- **Feb 2026**: Added discount rate (نسبة التخفيض) — default 25%, configurable. DutyAfterDiscount = DutyBefore × (1 - discount%)
+- **Feb 2026**: New tax base formula: TaxBase = CustomsValue + DutyAfterDiscount (sales 5% + municipal 2% on this base)
+- **Feb 2026**: Separated paid inputs: "رسوم جمركية مدفوعة" + "ضرائب مدفوعة" (both in USD)
+- **Feb 2026**: Calculator results show فرق الجمرك (duty diff) and فرق الإجمالي (total diff) in both IQD and USD
+- **Feb 2026**: Removed old asycuda_discount checkbox, replaced with configurable discount rate field
 
 ## System Architecture
 
