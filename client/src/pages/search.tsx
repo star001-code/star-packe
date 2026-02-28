@@ -235,6 +235,7 @@ export default function SearchPage() {
             <TableHead className="text-right">رمز HS</TableHead>
             <TableHead className="text-right">الوصف</TableHead>
             <TableHead className="text-right">الوحدة</TableHead>
+            <TableHead className="text-right">الرسم %</TableHead>
             <TableHead className="text-right">أدنى</TableHead>
             <TableHead className="text-right">متوسط</TableHead>
             <TableHead className="text-right">أقصى</TableHead>
@@ -265,6 +266,9 @@ export default function SearchPage() {
               </TableCell>
               <TableCell className="text-sm whitespace-nowrap">
                 {product.unit || "-"}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap" data-testid={`text-duty-rate-${product.id}`}>
+                {product.duty_rate != null ? `${Math.round(product.duty_rate * 100)}%` : "-"}
               </TableCell>
               <TableCell className="text-sm font-mono whitespace-nowrap">
                 {formatNumber(product.min_value)}
