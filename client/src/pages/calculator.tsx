@@ -456,7 +456,7 @@ export default function CalculatorPage() {
     setItems((prev) =>
       prev.map((it) =>
         it.localId === localId
-          ? { ...it, category: categoryId, duty_rate: cat ? cat.dutyRate : it.duty_rate, tax_deposit_rate: cat ? cat.taxDeposit : it.tax_deposit_rate }
+          ? { ...it, category: categoryId, tax_deposit_rate: cat ? cat.taxDeposit : it.tax_deposit_rate }
           : it
       )
     );
@@ -758,20 +758,32 @@ export default function CalculatorPage() {
                   </div>
                 </div>
 
-                {item.category === "custom" && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">نسبة الرسم المخصصة</Label>
+                    <Label className="text-xs">نسبة الرسم % (قانون 22)</Label>
                     <Input
                       type="number"
                       min={0}
-                      max={5}
-                      step={0.01}
-                      value={item.duty_rate}
-                      onChange={(e) => updateItem(item.localId, "duty_rate", parseFloat(e.target.value) || 0)}
+                      max={200}
+                      step={1}
+                      value={Math.round(item.duty_rate * 100)}
+                      onChange={(e) => updateItem(item.localId, "duty_rate", (parseFloat(e.target.value) || 0) / 100)}
                       data-testid={`input-duty-rate-${idx}`}
                     />
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">أمانة ضريبية %</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={Math.round(item.tax_deposit_rate * 100)}
+                      onChange={(e) => updateItem(item.localId, "tax_deposit_rate", (parseFloat(e.target.value) || 0) / 100)}
+                      data-testid={`input-tax-deposit-${idx}`}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}

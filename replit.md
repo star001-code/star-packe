@@ -50,6 +50,12 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Removed old asycuda_discount checkbox, replaced with configurable discount rate field
 - **Feb 2026**: CIF valuation rule: if CIF < GDS_MIN → raise to reference minimum; if CIF > GDS_MAX → flag for audit; Duty = CIF × tariff rate
 - **Feb 2026**: Per-item valuation_flag (normal/raised/audit) with color-coded badges, GDS min/max display, strikethrough on raised invoice values
+- **Feb 2026**: Integrated Iraqi Customs Tariff Law No. 22/2010 — extracted 2,200 HS code duty rates from official PDF, added `duty_rate` column to products table
+- **Feb 2026**: All 10,488 products now have duty_rate populated: 8-digit HS lookup → 6-digit fallback → chapter-level default → 20% (Article 2 fallback)
+- **Feb 2026**: Calculator auto-fills duty rate from law when product is selected (no longer defaults to category rate)
+- **Feb 2026**: Duty rate field always visible per item, labeled "نسبة الرسم (قانون 22)", editable for override
+- **Feb 2026**: Search page shows duty rate column in products table and in product detail card
+- **Feb 2026**: Goods category change no longer overrides the law-based duty rate (only updates tax deposit rate)
 
 ## System Architecture
 
