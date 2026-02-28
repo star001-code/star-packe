@@ -24,6 +24,30 @@ function toNum(v: any): number | null {
   return isNaN(n) ? null : n;
 }
 
+let tariffData: { hs_rates: Record<string, number>; chapter_defaults: Record<string, number> } | null = null;
+
+function loadTariff(): typeof tariffData {
+  if (tariffData) return tariffData;
+  const tariffPath = path.resolve("attached_assets/tariff_law22_2010.json");
+  if (fs.existsSync(tariffPath)) {
+    tariffData = JSON.parse(fs.readFileSync(tariffPath, "utf-8"));
+  } else {
+    tariffData = { hs_rates: {}, chapter_defaults: {} };
+  }
+  return tariffData;
+}
+
+function lookupDutyRate(hsCode: string): number | null {
+  const t = loadTariff();
+  if (!t) return null;
+  const hs = hsCode.replace(/[^\d]/g, "");
+  if (t.hs_rates[hs] !== undefined) return t.hs_rates[hs] / 100;
+  if (hs.length >= 6 && t.hs_rates[hs.slice(0, 6)] !== undefined) return t.hs_rates[hs.slice(0, 6)] / 100;
+  const ch = hs.slice(0, 2);
+  if (t.chapter_defaults[ch] !== undefined) return t.chapter_defaults[ch] / 100;
+  return 0.20;
+}
+
 function normalizeRow(row: Record<string, any>): InsertProduct | null {
   const hs = normHs(pick(row, ["hs_code", "hs", "HS", "hscode", "code", "hsCode"]));
   const desc = String(pick(row, ["description", "desc", "item_description", "name", "arabic_description", "Description"]) || "");
@@ -48,6 +72,8 @@ function normalizeRow(row: Record<string, any>): InsertProduct | null {
 
   if (!hs && !desc) return null;
 
+  const dutyRate = lookupDutyRate(hs);
+
   return {
     hsCode: hs,
     cstCode: cst ? String(cst) : null,
@@ -56,6 +82,7 @@ function normalizeRow(row: Record<string, any>): InsertProduct | null {
     minValue: mn,
     avgValue: av,
     maxValue: mx,
+    dutyRate,
     currency,
     sourcePage: page,
     rawJson: JSON.stringify(row),

@@ -45,6 +45,7 @@ type Product = {
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
+  duty_rate: number | null;
   currency: string | null;
 };
 
@@ -218,7 +219,7 @@ export default function SearchPage() {
   const tscUnitIqd = selectedProduct?.avg_value || 0;
   const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
   const customsValue = valuationUnitIqd * estimateQty;
-  const dutyRate = suggested?.dutyRate || 0;
+  const dutyRate = selectedProduct?.duty_rate ?? suggested?.dutyRate ?? 0;
   const taxDepositRate = suggested?.taxDeposit || 0;
   const duty = customsValue * (dutyRate + protectionRate);
   const salesTax = customsValue * 0.05;
@@ -408,7 +409,7 @@ export default function SearchPage() {
               <div className="rounded-md bg-muted/50 p-3 space-y-1" data-testid="text-suggested-category">
                 <p className="text-sm font-medium">الفئة المقترحة: {suggested.label}</p>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                  <span>نسبة الرسم: {Math.round(suggested.dutyRate * 100)}%</span>
+                  <span>نسبة الرسم (قانون 22): {selectedProduct?.duty_rate != null ? `${Math.round(selectedProduct.duty_rate * 100)}%` : `${Math.round(suggested.dutyRate * 100)}%`}</span>
                   <span>الأمانة الضريبية: {Math.round(suggested.taxDeposit * 100)}%</span>
                   <span>حماية: {Math.round(protectionRate * 100)}%</span>
                 </div>
