@@ -191,7 +191,20 @@ export async function registerRoutes(
         const invoiceUnitIqd = it.quantity ? invoiceTotalIqd / it.quantity : 0;
         const invoiceUnit = it.quantity ? it.invoice_total_value / it.quantity : 0;
         const tscUnitIqd = tscUnit;
-        const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
+
+        const gdsMin = row?.minValue ?? 0;
+        const gdsMax = row?.maxValue ?? 0;
+
+        let valuationUnitIqd = invoiceUnitIqd;
+        let valuationFlag: "normal" | "raised" | "audit" = "normal";
+
+        if (gdsMin > 0 && invoiceUnitIqd < gdsMin) {
+          valuationUnitIqd = gdsMin;
+          valuationFlag = "raised";
+        } else if (gdsMax > 0 && invoiceUnitIqd > gdsMax) {
+          valuationFlag = "audit";
+        }
+
         const customsValueIqd = valuationUnitIqd * it.quantity;
 
         const dutyBeforeDiscount = customsValueIqd * (it.duty_rate + it.protection_rate);
@@ -224,7 +237,10 @@ export async function registerRoutes(
           invoice_unit_value: invoiceUnit,
           invoice_unit_iqd: invoiceUnitIqd,
           tsc_unit_value_iqd: tscUnitIqd,
+          gds_min_iqd: gdsMin,
+          gds_max_iqd: gdsMax,
           valuation_unit_iqd: valuationUnitIqd,
+          valuation_flag: valuationFlag,
           customs_value_iqd: customsValueIqd,
           duty_rate: it.duty_rate,
           protection_rate: it.protection_rate,

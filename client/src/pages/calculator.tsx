@@ -125,7 +125,10 @@ type CalcResult = {
     invoice_unit_value: number;
     invoice_unit_iqd: number;
     tsc_unit_value_iqd: number;
+    gds_min_iqd: number;
+    gds_max_iqd: number;
     valuation_unit_iqd: number;
+    valuation_flag: "normal" | "raised" | "audit";
     customs_value_iqd: number;
     duty_rate: number;
     protection_rate: number;
@@ -811,6 +814,12 @@ export default function CalculatorPage() {
                     lines.push(`${ri.hs_code} - ${ri.description}`);
                     lines.push(`  الكمية: ${ri.quantity} ${ri.unit}`);
                     lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_value)} (${formatIQD(ri.invoice_total_iqd)} د.ع)`);
+                    if (ri.valuation_flag === "raised") {
+                      lines.push(`  [رفع] رُفعت للحد الأدنى GDS: ${formatIQD(ri.gds_min_iqd)} د.ع`);
+                    } else if (ri.valuation_flag === "audit") {
+                      lines.push(`  [تدقيق] أعلى من الحد الأقصى GDS: ${formatIQD(ri.gds_max_iqd)} د.ع`);
+                    }
+                    lines.push(`  CIF المعتمدة: ${formatIQD(ri.valuation_unit_iqd)} د.ع/وحدة`);
                     lines.push(`  القيمة الكمركية: ${formatIQD(ri.customs_value_iqd)} د.ع`);
                     lines.push(`  الرسم قبل التخفيض (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_before_discount_iqd)} د.ع`);
                     lines.push(`  الرسم بعد التخفيض: ${formatIQD(ri.duty_after_discount_iqd)} د.ع`);
@@ -887,6 +896,18 @@ export default function CalculatorPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="font-mono">{ri.hs_code}</Badge>
                     <span className="truncate">{ri.description || "-"}</span>
+                    {ri.valuation_flag === "raised" && (
+                      <Badge variant="destructive" className="text-[10px] px-1.5" data-testid={`badge-raised-${idx}`}>
+                        <AlertCircle className="h-3 w-3 ml-1 inline" />
+                        رُفعت للحد الأدنى
+                      </Badge>
+                    )}
+                    {ri.valuation_flag === "audit" && (
+                      <Badge variant="outline" className="border-amber-500 text-amber-400 text-[10px] px-1.5" data-testid={`badge-audit-${idx}`}>
+                        <AlertCircle className="h-3 w-3 ml-1 inline" />
+                        تدقيق - أعلى من الحد الأقصى
+                      </Badge>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                     <div>
@@ -895,15 +916,23 @@ export default function CalculatorPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">قيمة الوحدة بالفاتورة:</span>
-                      <span className="font-mono mr-1">${formatUSD(ri.invoice_unit_value)} ({formatIQD(ri.invoice_unit_iqd)} د.ع)</span>
+                      <span className={`font-mono mr-1 ${ri.valuation_flag === "raised" ? "line-through text-muted-foreground" : ""}`}>
+                        ${formatUSD(ri.invoice_unit_value)} ({formatIQD(ri.invoice_unit_iqd)} د.ع)
+                      </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">قيمة TSC للوحدة:</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.tsc_unit_value_iqd)} د.ع</span>
+                      <span className="text-muted-foreground">GDS الحد الأدنى:</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.gds_min_iqd)} د.ع</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">القيمة المعتمدة للوحدة:</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.valuation_unit_iqd)} د.ع</span>
+                      <span className="text-muted-foreground">GDS الحد الأقصى:</span>
+                      <span className="font-mono mr-1">{formatIQD(ri.gds_max_iqd)} د.ع</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">CIF المعتمدة للوحدة:</span>
+                      <span className={`font-mono mr-1 font-bold ${ri.valuation_flag === "raised" ? "text-destructive" : ri.valuation_flag === "audit" ? "text-amber-400" : ""}`}>
+                        {formatIQD(ri.valuation_unit_iqd)} د.ع
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">القيمة الكمركية:</span>
@@ -1040,12 +1069,19 @@ export default function CalculatorPage() {
               )}
             </div>
 
-            {result.items.some((ri) => ri.tsc_unit_value_iqd > ri.invoice_unit_iqd) && (
-              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-md p-3">
+            {result.items.some((ri) => ri.valuation_flag === "raised") && (
+              <div className="flex items-start gap-2 text-xs text-destructive bg-destructive/10 rounded-md p-3">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <p>
-                  بعض المنتجات لها قيمة TSC أعلى من قيمة الفاتورة. يتم اعتماد القيمة الأعلى
-                  كأساس لحساب الرسوم الكمركية.
+                  بعض المنتجات قيمة فاتورتها أقل من الحد الأدنى (GDS_MIN). تم رفع القيمة تلقائياً إلى الحد الأدنى المرجعي.
+                </p>
+              </div>
+            )}
+            {result.items.some((ri) => ri.valuation_flag === "audit") && (
+              <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-600/10 rounded-md p-3">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>
+                  بعض المنتجات قيمة فاتورتها أعلى من الحد الأقصى (GDS_MAX). يجب التدقيق في هذه المنتجات.
                 </p>
               </div>
             )}
