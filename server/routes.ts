@@ -87,6 +87,7 @@ export async function registerRoutes(
           min_value: r.minValue,
           avg_value: r.avgValue,
           max_value: r.maxValue,
+          duty_rate: r.dutyRate,
           currency: r.currency,
         })),
         page,
@@ -115,6 +116,7 @@ export async function registerRoutes(
         min_value: r.minValue,
         avg_value: r.avgValue,
         max_value: r.maxValue,
+        duty_rate: r.dutyRate,
         currency: r.currency,
       }));
       res.json(out);
@@ -141,6 +143,7 @@ export async function registerRoutes(
         min_value: r.minValue,
         avg_value: r.avgValue,
         max_value: r.maxValue,
+        duty_rate: r.dutyRate,
         currency: r.currency,
       }));
       res.json(out);

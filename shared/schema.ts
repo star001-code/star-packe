@@ -47,6 +47,7 @@ export const products = pgTable("products", {
   minValue: real("min_value"),
   avgValue: real("avg_value"),
   maxValue: real("max_value"),
+  dutyRate: real("duty_rate"),
   currency: text("currency").default("IQD"),
   sourcePage: integer("source_page"),
   rawJson: text("raw_json"),

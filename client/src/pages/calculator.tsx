@@ -84,6 +84,7 @@ type Product = {
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
+  duty_rate: number | null;
   currency: string | null;
 };
 
@@ -414,7 +415,10 @@ export default function CalculatorPage() {
   });
 
   const addProduct = (product: Product) => {
-    const cat = GOODS_CATEGORIES.find(c => c.id === "consumer");
+    const lawRate = product.duty_rate ?? 0.20;
+    const matchedCat = GOODS_CATEGORIES.reduce((best, c) =>
+      Math.abs(c.dutyRate - lawRate) < Math.abs(best.dutyRate - lawRate) ? c : best
+    , GOODS_CATEGORIES[0]);
     setItems((prev) => [
       ...prev,
       {
@@ -424,10 +428,10 @@ export default function CalculatorPage() {
         quantity: 1,
         unit: product.unit || "",
         invoice_total_value: 0,
-        duty_rate: 0.30,
+        duty_rate: lawRate,
         protection_rate: getAutoProtection(product.hs_code),
-        category: "consumer",
-        tax_deposit_rate: cat ? cat.taxDeposit : 0.03,
+        category: matchedCat.id,
+        tax_deposit_rate: matchedCat.taxDeposit,
         tsc_basis: "avg",
         tsc_min: product.min_value,
         tsc_avg: product.avg_value,
