@@ -48,6 +48,8 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Separated paid inputs: "رسوم جمركية مدفوعة" + "ضرائب مدفوعة" (both in USD)
 - **Feb 2026**: Calculator results show فرق الجمرك (duty diff) and فرق الإجمالي (total diff) in both IQD and USD
 - **Feb 2026**: Removed old asycuda_discount checkbox, replaced with configurable discount rate field
+- **Feb 2026**: CIF valuation rule: if CIF < GDS_MIN → raise to reference minimum; if CIF > GDS_MAX → flag for audit; Duty = CIF × tariff rate
+- **Feb 2026**: Per-item valuation_flag (normal/raised/audit) with color-coded badges, GDS min/max display, strikethrough on raised invoice values
 
 ## System Architecture
 
