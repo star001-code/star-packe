@@ -26,6 +26,7 @@ export interface IStorage {
   seedCheckpoints(): Promise<void>;
   seedProducts(rows: InsertProduct[]): Promise<number>;
   getProductCount(): Promise<number>;
+  updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number>;
 }
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -218,6 +219,19 @@ export class DatabaseStorage implements IStorage {
   async getProductCount(): Promise<number> {
     const [row] = await db.select({ c: count() }).from(products);
     return row.c;
+  }
+
+  async updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number> {
+    let updated = 0;
+    const allProducts = await db.select({ id: products.id, hsCode: products.hsCode, dutyRate: products.dutyRate }).from(products);
+    for (const p of allProducts) {
+      const newRate = lookupFn(p.hsCode);
+      if (newRate !== null && newRate !== p.dutyRate) {
+        await db.update(products).set({ dutyRate: newRate }).where(eq(products.id, p.id));
+        updated++;
+      }
+    }
+    return updated;
   }
 }
 

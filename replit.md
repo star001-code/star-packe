@@ -56,6 +56,9 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Duty rate field always visible per item, labeled "نسبة الرسم (قانون 22)", editable for override
 - **Feb 2026**: Search page shows duty rate column in products table and in product detail card
 - **Feb 2026**: Goods category change no longer overrides the law-based duty rate (only updates tax deposit rate)
+- **Mar 2026**: Integrated Council of Ministers duty reduction tables (جداول تقليص فئات الرسوم الكمركية) — consolidated chapter-level rates supersede Law 22 per-item rates
+- **Mar 2026**: All 10,488 products updated: 4 rate tiers (5% gems, 10% food/chemicals/metals, 15% textiles/wood/vehicles, 30% alcohol/tobacco/electronics/weapons/antiques)
+- **Mar 2026**: Duty rates auto-refresh on every startup from tariff_law22_2010.json
 
 ## System Architecture
 
