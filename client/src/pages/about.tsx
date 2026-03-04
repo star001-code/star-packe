@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { Database, Calculator, FileText, Shield, Scale, BookOpen, Percent } from "lucide-react";
+import { Database, Calculator, FileText, Shield, Scale, BookOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function About() {
@@ -80,12 +80,9 @@ export default function About() {
         <CardContent className="space-y-3 text-sm leading-relaxed">
           <p>يتم حساب فرق الرسم الكمركي وفق الخطوات التالية:</p>
           <ol className="list-decimal list-inside space-y-2 pr-2">
-            <li>تحديد قيمة الوحدة المعتمدة (CIF): مقارنة مع الحد الأدنى GDS — إذا أقل يُرفع</li>
-            <li>القيمة الكمركية = قيمة الوحدة المعتمدة × الكمية</li>
-            <li>الرسم الكمركي = القيمة الكمركية × (نسبة الرسم + نسبة الحماية)</li>
-            <li>الرسم بعد التخفيض = الرسم × (1 - نسبة التخفيض)</li>
-            <li>المجموع = الرسم بعد التخفيض</li>
-            <li>الفرق = المجموع - المبلغ المدفوع</li>
+            <li>الرسم = الوزن × القيمة × نسبة الرسم%</li>
+            <li>الفرق = الرسم - الرسم المدفوع</li>
+            <li>الفرق بالدينار = الفرق × سعر الصرف (1320)</li>
           </ol>
         </CardContent>
       </Card>
@@ -107,92 +104,10 @@ export default function About() {
               <Scale className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
               <span><strong>قانون التعرفة الكمركية رقم 22 لسنة 2010</strong> - القانون الأساسي للتعرفة الكمركية العراقية</span>
             </li>
-            <li className="flex items-start gap-2">
-              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-              <span><strong>قانون حماية المنتجات الوطنية رقم 11 لسنة 2010</strong> - فرض رسوم حماية إضافية على المنتجات المنافسة للإنتاج المحلي</span>
-            </li>
           </ul>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            حماية المنتج الوطني
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-relaxed">
-          <p>يتم فرض رسوم حماية إضافية على بعض المنتجات المنافسة للإنتاج المحلي العراقي:</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-right py-2 pr-2">المنتج</th>
-                  <th className="text-right py-2">رمز HS</th>
-                  <th className="text-right py-2">نسبة الحماية</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">حديد تسليح (10-32 ملم)</td>
-                  <td className="py-2 font-mono">72142</td>
-                  <td className="py-2">+30%</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">حاويات بلاستيك</td>
-                  <td className="py-2 font-mono">3924</td>
-                  <td className="py-2">+60%</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2">أنابيب بلاستيك</td>
-                  <td className="py-2 font-mono">3917</td>
-                  <td className="py-2">+60%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            تُضاف نسبة الحماية تلقائياً عند إدخال رمز HS المطابق، ويمكن تعديلها يدوياً.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Percent className="h-5 w-5 text-primary" />
-            الأمانة الضريبية (Tax Deposit)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-relaxed">
-          <p>تُحتسب الأمانة الضريبية كنسبة من القيمة الكمركية حسب تصنيف البضاعة:</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-right py-2 pr-2">النسبة</th>
-                  <th className="text-right py-2">التصنيفات</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-2 pr-2 font-mono">1%</td>
-                  <td className="py-2">مواد غذائية أساسية، أدوية، مدخلات زراعية، مواد تعليمية، معدات طاقة شمسية</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2 font-mono">2%</td>
-                  <td className="py-2">مجوهرات وذهب، مكائن ومعدات إنتاجية</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-2 font-mono">3%</td>
-                  <td className="py-2">باقي التصنيفات (مواد غذائية مصنعة، مواد خام، إلكترونيات، ملابس، مركبات، سلع كمالية، تبغ، كحول، إلخ)</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -255,22 +170,6 @@ export default function About() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            تخفيض أسيكودا 25%
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-relaxed">
-          <p>
-            اعتباراً من فبراير 2026، يُطبّق تخفيض 25% على القيم الاستدلالية (TSC) ضمن نظام أسيكودا
-            الإلكتروني. عند تفعيل هذا الخيار في الحاسبة، تُضرب قيمة TSC بمعامل 0.75 قبل
-            مقارنتها بقيمة الفاتورة لتحديد القيمة المعتمدة.
-          </p>
         </CardContent>
       </Card>
 

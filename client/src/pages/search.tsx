@@ -29,7 +29,6 @@ import {
   ChevronLeft,
   DollarSign,
   Calculator,
-  Shield,
   Percent,
   Zap,
 } from "lucide-react";
@@ -55,68 +54,6 @@ type ProductsResponse = {
   total_pages: number;
   total_count: number;
 };
-
-const GOODS_CATEGORIES = [
-  { id: "food_basic", label: "مواد غذائية أساسية", dutyRate: 0.05, taxDeposit: 0.01 },
-  { id: "food_processed", label: "مواد غذائية مصنعة", dutyRate: 0.05, taxDeposit: 0.03 },
-  { id: "medical", label: "أدوية ومستلزمات طبية", dutyRate: 0.05, taxDeposit: 0.01 },
-  { id: "agriculture", label: "مدخلات زراعية", dutyRate: 0.05, taxDeposit: 0.01 },
-  { id: "education", label: "مواد تعليمية وقرطاسية", dutyRate: 0.05, taxDeposit: 0.01 },
-  { id: "solar", label: "معدات طاقة شمسية", dutyRate: 0.05, taxDeposit: 0.01 },
-  { id: "raw_materials", label: "مواد خام", dutyRate: 0.10, taxDeposit: 0.03 },
-  { id: "computers", label: "حواسيب ولوازمها", dutyRate: 0.05, taxDeposit: 0.03 },
-  { id: "industrial", label: "مدخلات صناعية", dutyRate: 0.15, taxDeposit: 0.03 },
-  { id: "construction", label: "مواد بناء", dutyRate: 0.15, taxDeposit: 0.03 },
-  { id: "electrical", label: "كهربائيات (ثلاجات، مكيفات، غسالات)", dutyRate: 0.15, taxDeposit: 0.03 },
-  { id: "vehicles", label: "مركبات (موحد 15%)", dutyRate: 0.15, taxDeposit: 0.03 },
-  { id: "electronics", label: "إلكترونيات استهلاكية", dutyRate: 0.20, taxDeposit: 0.03 },
-  { id: "smartphones", label: "هواتف ذكية", dutyRate: 0.20, taxDeposit: 0.03 },
-  { id: "clothing", label: "ملابس ومنسوجات", dutyRate: 0.20, taxDeposit: 0.03 },
-  { id: "household", label: "أدوات منزلية", dutyRate: 0.25, taxDeposit: 0.03 },
-  { id: "consumer", label: "سلع استهلاكية عامة", dutyRate: 0.30, taxDeposit: 0.03 },
-  { id: "luxury_goods", label: "سلع كمالية", dutyRate: 0.40, taxDeposit: 0.03 },
-  { id: "jewelry", label: "مجوهرات وذهب", dutyRate: 0.05, taxDeposit: 0.02 },
-  { id: "machinery", label: "مكائن ومعدات إنتاجية", dutyRate: 0.10, taxDeposit: 0.02 },
-  { id: "cleaning", label: "منتجات تنظيف", dutyRate: 0.65, taxDeposit: 0.03 },
-  { id: "plastic_protected", label: "بلاستيك (حاويات/أكواب) - محمي", dutyRate: 0.30, taxDeposit: 0.03 },
-  { id: "steel_rebar", label: "حديد تسليح (10-32 ملم) - محمي", dutyRate: 0.30, taxDeposit: 0.03 },
-  { id: "tobacco", label: "تبغ وسكائر", dutyRate: 1.00, taxDeposit: 0.03 },
-  { id: "alcohol", label: "مشروبات كحولية", dutyRate: 1.50, taxDeposit: 0.03 },
-  { id: "custom", label: "نسبة مخصصة", dutyRate: 0, taxDeposit: 0.03 },
-];
-
-const PROTECTION_RULES: { hsPrefix: string; rate: number; label: string }[] = [
-  { hsPrefix: "72142", rate: 0.30, label: "حديد تسليح - حماية منتج وطني" },
-  { hsPrefix: "3924", rate: 0.60, label: "حاويات بلاستيك - حماية منتج وطني" },
-  { hsPrefix: "3917", rate: 0.60, label: "أنابيب بلاستيك - حماية منتج وطني" },
-];
-
-function getAutoProtection(hsCode: string): { rate: number; label: string } | null {
-  const normalized = hsCode.replace(/[^\d]/g, "");
-  for (const rule of PROTECTION_RULES) {
-    if (normalized.startsWith(rule.hsPrefix)) {
-      return { rate: rule.rate, label: rule.label };
-    }
-  }
-  return null;
-}
-
-function suggestCategory(hsCode: string): typeof GOODS_CATEGORIES[number] {
-  const hs = hsCode.replace(/[^\d]/g, "");
-  if (hs.startsWith("72142")) return GOODS_CATEGORIES.find(c => c.id === "steel_rebar")!;
-  if (hs.startsWith("3924") || hs.startsWith("3917")) return GOODS_CATEGORIES.find(c => c.id === "plastic_protected")!;
-  if (hs.startsWith("8703")) return GOODS_CATEGORIES.find(c => c.id === "vehicles")!;
-  if (hs.startsWith("8517")) return GOODS_CATEGORIES.find(c => c.id === "smartphones")!;
-  if (hs.startsWith("8471")) return GOODS_CATEGORIES.find(c => c.id === "computers")!;
-  if (hs.startsWith("30")) return GOODS_CATEGORIES.find(c => c.id === "medical")!;
-  if (hs.startsWith("24")) return GOODS_CATEGORIES.find(c => c.id === "tobacco")!;
-  if (hs.startsWith("9401") || hs.startsWith("9402") || hs.startsWith("9403") || hs.startsWith("9404") || hs.startsWith("9405")) return GOODS_CATEGORIES.find(c => c.id === "consumer")!;
-  if (hs.startsWith("8418") || hs.startsWith("8415") || hs.startsWith("8450")) return GOODS_CATEGORIES.find(c => c.id === "electrical")!;
-  if (hs.startsWith("7113") || hs.startsWith("7114")) return GOODS_CATEGORIES.find(c => c.id === "jewelry")!;
-  if (hs.startsWith("22")) return GOODS_CATEGORIES.find(c => c.id === "alcohol")!;
-  if (hs.startsWith("61") || hs.startsWith("62")) return GOODS_CATEGORIES.find(c => c.id === "clothing")!;
-  return GOODS_CATEGORIES.find(c => c.id === "consumer")!;
-}
 
 function formatNumber(n: number | null | undefined): string {
   if (n === null || n === undefined) return "-";
@@ -210,18 +147,8 @@ export default function SearchPage() {
   const totalPages = browseData?.total_pages || 1;
   const totalCount = browseData?.total_count || 0;
 
-  const protection = selectedProduct ? getAutoProtection(selectedProduct.hs_code) : null;
-  const suggested = selectedProduct ? suggestCategory(selectedProduct.hs_code) : null;
-  const protectionRate = protection ? protection.rate : 0;
-
-  const invoiceIqd = estimateValue * 1320;
-  const invoiceUnitIqd = estimateQty > 0 ? invoiceIqd / estimateQty : 0;
-  const tscUnitIqd = selectedProduct?.avg_value || 0;
-  const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
-  const customsValue = valuationUnitIqd * estimateQty;
-  const dutyRate = selectedProduct?.duty_rate ?? suggested?.dutyRate ?? 0;
-  const duty = customsValue * (dutyRate + protectionRate);
-  const estimateTotal = duty;
+  const dutyRate = selectedProduct?.duty_rate ?? 0;
+  const estimateDuty = estimateQty * estimateValue * dutyRate;
 
   const renderTable = (products: Product[]) => (
     <div className="overflow-x-auto">
@@ -319,7 +246,7 @@ export default function SearchPage() {
         <p className="text-sm text-muted-foreground">ادخل حرفين على الأقل للبحث</p>
       )}
 
-      {selectedProduct && suggested && (
+      {selectedProduct && (
         <Card data-testid="card-product-detail">
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -399,18 +326,9 @@ export default function SearchPage() {
                 التصنيف الكمركي
               </p>
 
-              {protection && (
-                <Badge variant="destructive" className="text-sm" data-testid="text-protection-badge">
-                  <Shield className="h-3.5 w-3.5 ml-1" />
-                  {protection.label} +{Math.round(protection.rate * 100)}%
-                </Badge>
-              )}
-
-              <div className="rounded-md bg-muted/50 p-3 space-y-1" data-testid="text-suggested-category">
-                <p className="text-sm font-medium">الفئة المقترحة: {suggested.label}</p>
+              <div className="rounded-md bg-muted/50 p-3 space-y-1">
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                  <span>نسبة الرسم (قانون 22): {selectedProduct?.duty_rate != null ? `${Math.round(selectedProduct.duty_rate * 100)}%` : `${Math.round(suggested.dutyRate * 100)}%`}</span>
-                  <span>حماية: {Math.round(protectionRate * 100)}%</span>
+                  <span>نسبة الرسم: {selectedProduct?.duty_rate != null ? `${Math.round(selectedProduct.duty_rate * 100)}%` : "-"}</span>
                 </div>
               </div>
             </div>
@@ -425,7 +343,7 @@ export default function SearchPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">الكمية</Label>
+                  <Label className="text-xs">الوزن / الكمية</Label>
                   <Input
                     type="number"
                     min={1}
@@ -435,7 +353,7 @@ export default function SearchPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">قيمة الفاتورة (USD)</Label>
+                  <Label className="text-xs">القيمة (USD)</Label>
                   <Input
                     type="number"
                     min={0}
@@ -449,21 +367,13 @@ export default function SearchPage() {
               {estimateValue > 0 && (
                 <div className="rounded-md bg-muted/50 p-3 space-y-1.5 text-sm font-mono">
                   <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">القيمة بالدينار:</span>
-                    <span>{formatIQD(invoiceIqd)} د.ع</span>
-                  </div>
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">القيمة الكمركية:</span>
-                    <span>{formatIQD(customsValue)} د.ع</span>
-                  </div>
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">الرسم الكمركي ({Math.round(dutyRate * 100)}%{protectionRate > 0 ? `+${Math.round(protectionRate * 100)}%` : ""}):</span>
-                    <span>{formatIQD(duty)} د.ع</span>
+                    <span className="text-muted-foreground">الوزن × القيمة × {Math.round(dutyRate * 100)}%:</span>
+                    <span>{estimateQty} × ${formatNumber(estimateValue)} × {Math.round(dutyRate * 100)}%</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between gap-2 flex-wrap font-bold text-emerald-400" data-testid="text-estimate-total">
-                    <span>الإجمالي التقديري:</span>
-                    <span>{formatIQD(estimateTotal)} د.ع</span>
+                    <span>الرسم التقديري:</span>
+                    <span>${formatNumber(estimateDuty)}</span>
                   </div>
                 </div>
               )}
@@ -476,10 +386,6 @@ export default function SearchPage() {
                 params.set("hs", selectedProduct.hs_code);
                 params.set("desc", selectedProduct.description || "");
                 params.set("unit", selectedProduct.unit || "");
-                params.set("category", suggested.id);
-                params.set("protection", String(protectionRate));
-                params.set("qty", String(estimateQty));
-                params.set("value", String(estimateValue));
                 navigate(`/calculator?${params.toString()}`);
               }}
               data-testid="button-add-to-calc"
