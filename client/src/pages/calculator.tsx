@@ -123,7 +123,6 @@ type CalcResult = {
     protection_rate: number;
     duty_after_discount_usd: number;
     discount_rate: number;
-    sales_tax_usd: number;
     goods_category: string;
     item_total_usd: number;
     paid_duty_usd: number;
@@ -134,7 +133,6 @@ type CalcResult = {
   summary: {
     duty_after_discount_usd: number;
     discount_rate: number;
-    sales_tax_usd: number;
     total_payable_usd: number;
     total_payable_iqd: number;
     paid_usd: number;
@@ -711,12 +709,10 @@ export default function CalculatorPage() {
                     }
                     lines.push(`  القيمة الكمركية: $${formatUSD(ri.customs_value_usd)}`);
                     lines.push(`  الرسم بعد التخفيض (${(ri.duty_rate * 100).toFixed(0)}%): $${formatUSD(ri.duty_after_discount_usd)}`);
-                    lines.push(`  ضريبة مبيعات (5%): $${formatUSD(ri.sales_tax_usd)}`);
                     lines.push(`  إجمالي المنتج: $${formatUSD(ri.item_total_usd)}`);
                   });
                   lines.push(`---`);
                   lines.push(`الرسم بعد التخفيض: $${formatUSD(result.summary.duty_after_discount_usd)}`);
-                  lines.push(`ضريبة مبيعات: $${formatUSD(result.summary.sales_tax_usd)}`);
                   lines.push(`المجموع الكلي: $${formatUSD(result.summary.total_payable_usd)} (${formatIQD(result.summary.total_payable_iqd)} د.ع)`);
                   if (result.summary.paid_usd > 0) {
                     lines.push(`---`);
@@ -811,10 +807,6 @@ export default function CalculatorPage() {
                       </span>
                       <span className="font-bold font-mono mr-1">${formatUSD(ri.duty_after_discount_usd)}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">ضريبة مبيعات (5%):</span>
-                      <span className="font-mono mr-1">${formatUSD(ri.sales_tax_usd)}</span>
-                    </div>
                   </div>
                   <div className="border-t pt-2 mt-2 space-y-1">
                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -842,10 +834,6 @@ export default function CalculatorPage() {
               <div className="flex items-center justify-between text-sm font-bold">
                 <span className="text-muted-foreground">الرسم بعد التخفيض ({(result.summary.discount_rate * 100).toFixed(0)}%):</span>
                 <span className="font-mono">${formatUSD(result.summary.duty_after_discount_usd)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm" data-testid="text-sales-tax">
-                <span className="text-muted-foreground">ضريبة المبيعات (5%):</span>
-                <span className="font-mono">${formatUSD(result.summary.sales_tax_usd)}</span>
               </div>
               <div className="flex items-center justify-between text-base font-bold bg-muted/50 rounded-md p-3" data-testid="text-total">
                 <span>المجموع الكلي المستحق:</span>

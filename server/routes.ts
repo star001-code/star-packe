@@ -158,7 +158,6 @@ export async function registerRoutes(
 
       const itemsOut: any[] = [];
       let dutyAfterDiscountSumUsd = 0;
-      let salesTaxSumUsd = 0;
 
       for (const it of parsed.items) {
         const hs = normHs(it.hs_code);
@@ -202,15 +201,11 @@ export async function registerRoutes(
         const dutyBeforeDiscountUsd = customsValueUsd * (it.duty_rate + it.protection_rate);
         const dutyAfterDiscountUsd = dutyBeforeDiscountUsd * (1 - parsed.discount_rate);
 
-        const taxBase = customsValueUsd + dutyAfterDiscountUsd;
-        const salesTaxUsd = taxBase * 0.05;
-
-        const itemTotalUsd = dutyAfterDiscountUsd + salesTaxUsd;
+        const itemTotalUsd = dutyAfterDiscountUsd;
         const paidDutyUsd = it.paid_duty || 0;
         const itemDifferenceUsd = itemTotalUsd - paidDutyUsd;
 
         dutyAfterDiscountSumUsd += dutyAfterDiscountUsd;
-        salesTaxSumUsd += salesTaxUsd;
 
         itemsOut.push({
           hs_code: hs,
@@ -229,7 +224,6 @@ export async function registerRoutes(
           protection_rate: it.protection_rate,
           duty_after_discount_usd: dutyAfterDiscountUsd,
           discount_rate: parsed.discount_rate,
-          sales_tax_usd: salesTaxUsd,
           goods_category: it.goods_category,
           item_total_usd: itemTotalUsd,
           paid_duty_usd: paidDutyUsd,
@@ -239,7 +233,7 @@ export async function registerRoutes(
         });
       }
 
-      const totalPayableUsd = dutyAfterDiscountSumUsd + salesTaxSumUsd;
+      const totalPayableUsd = dutyAfterDiscountSumUsd;
       const paidUsd = parsed.paid_usd || 0;
       const differenceUsd = totalPayableUsd - paidUsd;
 
@@ -249,7 +243,6 @@ export async function registerRoutes(
         summary: {
           duty_after_discount_usd: dutyAfterDiscountSumUsd,
           discount_rate: parsed.discount_rate,
-          sales_tax_usd: salesTaxSumUsd,
           total_payable_usd: totalPayableUsd,
           total_payable_iqd: totalPayableUsd * fxRate,
           paid_usd: paidUsd,
