@@ -62,7 +62,8 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Mar 2026**: Removed checkpoint selector — calculator is now general (no specific checkpoint required)
 - **Mar 2026**: Removed from results: checkpoint fees, duty-before-discount, municipal tax (2%), tax deposit (أمانة ضريبية)
 - **Mar 2026**: All calculations now in USD; final IQD conversion shown only on totals
-- **Mar 2026**: Simplified formula: Duty = CIF × rate × (1 - discount); no sales tax/municipal/tax deposit/checkpoint fees
+- **Mar 2026**: Simplified formula: الرسم = الوزن × القيمة × نسبة الرسم%; الفرق = الرسم - المدفوع; د.ع = الفرق × 1320
+- **Mar 2026**: Removed: CIF valuation, GDS min/max comparison, discount rate, protection rate, goods categories, TSC basis selector
 - **Mar 2026**: Added supplementary product data from tariff_clean (5,632 items) and summary_products_full (5,632 items with Arabic product names)
 - **Mar 2026**: Database expanded from 10,488 to 32,240 products with 2,251 unique HS codes (was 2,060)
 
