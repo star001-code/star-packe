@@ -59,6 +59,10 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Mar 2026**: Integrated Council of Ministers duty reduction tables (جداول تقليص فئات الرسوم الكمركية) — consolidated chapter-level rates supersede Law 22 per-item rates
 - **Mar 2026**: All 10,488 products updated: 4 rate tiers (5% gems, 10% food/chemicals/metals, 15% textiles/wood/vehicles, 30% alcohol/tobacco/electronics/weapons/antiques)
 - **Mar 2026**: Duty rates auto-refresh on every startup from tariff_law22_2010.json
+- **Mar 2026**: Removed checkpoint selector — calculator is now general (no specific checkpoint required)
+- **Mar 2026**: Removed from results: checkpoint fees, duty-before-discount, municipal tax (2%), tax deposit (أمانة ضريبية)
+- **Mar 2026**: All calculations now in USD; final IQD conversion shown only on totals
+- **Mar 2026**: Simplified formula: Duty = CIF × rate × (1 - discount) + SalesTax 5%; no municipal/tax deposit/checkpoint fees
 
 ## System Architecture
 

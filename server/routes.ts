@@ -20,13 +20,12 @@ const calcItemSchema = z.object({
 });
 
 const calcRequestSchema = z.object({
-  checkpoint_id: z.string(),
+  checkpoint_id: z.string().optional().default(""),
   fx_rate: z.number().positive().default(1320),
   invoice_currency: z.string().default("USD"),
   items: z.array(calcItemSchema).min(1),
-  paid_duty_usd: z.number().min(0).default(0),
+  paid_usd: z.number().min(0).default(0),
   discount_rate: z.number().min(0).max(1).default(0.25),
-  paid_taxes_usd: z.number().min(0).default(0),
 });
 
 function normHs(v: string): string {
@@ -155,20 +154,11 @@ export async function registerRoutes(
   app.post("/api/calculate", async (req, res) => {
     try {
       const parsed = calcRequestSchema.parse(req.body);
-      const cps = await storage.getCheckpoints();
-      const cp = cps.find((c) => c.id === parsed.checkpoint_id);
-      if (!cp) {
-        return res.status(404).json({ error: "Unknown checkpoint_id" });
-      }
+      const fxRate = parsed.fx_rate;
 
-      const feesTotal = cp.fees.reduce((s, f) => s + (f.amountIqd || 0), 0);
       const itemsOut: any[] = [];
-      let dutySum = 0;
-      let dutyBeforeDiscountSum = 0;
-      let dutyAfterDiscountSum = 0;
-      let salesTaxSum = 0;
-      let municipalTaxSum = 0;
-      let taxDepositSum = 0;
+      let dutyAfterDiscountSumUsd = 0;
+      let salesTaxSumUsd = 0;
 
       for (const it of parsed.items) {
         const hs = normHs(it.hs_code);
@@ -190,10 +180,8 @@ export async function registerRoutes(
           }
         }
 
-        const invoiceTotalIqd = it.invoice_total_value * parsed.fx_rate;
-        const invoiceUnitIqd = it.quantity ? invoiceTotalIqd / it.quantity : 0;
-        const invoiceUnit = it.quantity ? it.invoice_total_value / it.quantity : 0;
-        const tscUnitIqd = tscUnit;
+        const invoiceUnitUsd = it.quantity ? it.invoice_total_value / it.quantity : 0;
+        const invoiceUnitIqd = invoiceUnitUsd * fxRate;
 
         const gdsMin = row?.minValue ?? 0;
         const gdsMax = row?.maxValue ?? 0;
@@ -208,95 +196,65 @@ export async function registerRoutes(
           valuationFlag = "audit";
         }
 
-        const customsValueIqd = valuationUnitIqd * it.quantity;
+        const valuationUnitUsd = valuationUnitIqd / fxRate;
+        const customsValueUsd = valuationUnitUsd * it.quantity;
 
-        const dutyBeforeDiscount = customsValueIqd * (it.duty_rate + it.protection_rate);
-        const dutyAfterDiscount = dutyBeforeDiscount * (1 - parsed.discount_rate);
-        const dutyIqd = dutyAfterDiscount;
+        const dutyBeforeDiscountUsd = customsValueUsd * (it.duty_rate + it.protection_rate);
+        const dutyAfterDiscountUsd = dutyBeforeDiscountUsd * (1 - parsed.discount_rate);
 
-        const taxBase = customsValueIqd + dutyAfterDiscount;
-        const salesTaxIqd = taxBase * 0.05;
-        const municipalTaxIqd = taxBase * 0.02;
-        const taxDepositIqd = customsValueIqd * (it.tax_deposit_rate || 0.03);
+        const taxBase = customsValueUsd + dutyAfterDiscountUsd;
+        const salesTaxUsd = taxBase * 0.05;
 
-        const itemTotalIqd = dutyAfterDiscount + salesTaxIqd + municipalTaxIqd + taxDepositIqd;
-        const paidDutyIqd = (it.paid_duty || 0) * parsed.fx_rate;
-        const itemDifferenceIqd = itemTotalIqd - paidDutyIqd;
+        const itemTotalUsd = dutyAfterDiscountUsd + salesTaxUsd;
+        const paidDutyUsd = it.paid_duty || 0;
+        const itemDifferenceUsd = itemTotalUsd - paidDutyUsd;
 
-        dutySum += dutyIqd;
-        dutyBeforeDiscountSum += dutyBeforeDiscount;
-        dutyAfterDiscountSum += dutyAfterDiscount;
-        salesTaxSum += salesTaxIqd;
-        municipalTaxSum += municipalTaxIqd;
-        taxDepositSum += taxDepositIqd;
+        dutyAfterDiscountSumUsd += dutyAfterDiscountUsd;
+        salesTaxSumUsd += salesTaxUsd;
 
         itemsOut.push({
           hs_code: hs,
           description: desc,
           quantity: it.quantity,
           unit,
-          invoice_total_value: it.invoice_total_value,
-          invoice_total_iqd: invoiceTotalIqd,
-          invoice_unit_value: invoiceUnit,
-          invoice_unit_iqd: invoiceUnitIqd,
-          tsc_unit_value_iqd: tscUnitIqd,
+          invoice_total_usd: it.invoice_total_value,
+          invoice_unit_usd: invoiceUnitUsd,
           gds_min_iqd: gdsMin,
           gds_max_iqd: gdsMax,
+          valuation_unit_usd: valuationUnitUsd,
           valuation_unit_iqd: valuationUnitIqd,
           valuation_flag: valuationFlag,
-          customs_value_iqd: customsValueIqd,
+          customs_value_usd: customsValueUsd,
           duty_rate: it.duty_rate,
           protection_rate: it.protection_rate,
-          duty_before_discount_iqd: dutyBeforeDiscount,
-          duty_after_discount_iqd: dutyAfterDiscount,
+          duty_after_discount_usd: dutyAfterDiscountUsd,
           discount_rate: parsed.discount_rate,
-          duty_iqd: dutyIqd,
-          sales_tax_iqd: salesTaxIqd,
-          municipal_tax_iqd: municipalTaxIqd,
-          tax_deposit_iqd: taxDepositIqd,
+          sales_tax_usd: salesTaxUsd,
           goods_category: it.goods_category,
-          item_total_iqd: itemTotalIqd,
-          paid_duty_iqd: paidDutyIqd,
-          item_difference_iqd: itemDifferenceIqd,
+          item_total_usd: itemTotalUsd,
+          paid_duty_usd: paidDutyUsd,
+          item_difference_usd: itemDifferenceUsd,
+          item_total_iqd: itemTotalUsd * fxRate,
+          item_difference_iqd: itemDifferenceUsd * fxRate,
         });
       }
 
-      const totalPayable = dutySum + salesTaxSum + municipalTaxSum + taxDepositSum + feesTotal;
-      const paidAmountUsd = parsed.paid_duty_usd || 0;
-      const paidDutyIqd = paidAmountUsd * parsed.fx_rate;
-      const paidTaxesIqd = parsed.paid_taxes_usd * parsed.fx_rate;
-      const paidAmount = paidDutyIqd;
-      const dutyDifferenceIqd = dutyAfterDiscountSum - paidDutyIqd;
-      const totalDifferenceIqd = totalPayable - (paidDutyIqd + paidTaxesIqd);
+      const totalPayableUsd = dutyAfterDiscountSumUsd + salesTaxSumUsd;
+      const paidUsd = parsed.paid_usd || 0;
+      const differenceUsd = totalPayableUsd - paidUsd;
 
       res.json({
-        checkpoint: { id: cp.id, name: cp.name },
-        fx: { from: parsed.invoice_currency, to: "IQD", rate: parsed.fx_rate },
-        fees: {
-          items: cp.fees.map((f) => ({ code: f.code, label: f.label, amount_iqd: f.amountIqd })),
-          total_iqd: feesTotal,
-        },
+        fx: { from: parsed.invoice_currency, to: "IQD", rate: fxRate },
         items: itemsOut,
         summary: {
-          duty_iqd: dutySum,
-          duty_before_discount_iqd: dutyBeforeDiscountSum,
-          duty_after_discount_iqd: dutyAfterDiscountSum,
+          duty_after_discount_usd: dutyAfterDiscountSumUsd,
           discount_rate: parsed.discount_rate,
-          sales_tax_iqd: salesTaxSum,
-          municipal_tax_iqd: municipalTaxSum,
-          tax_deposit_iqd: taxDepositSum,
-          fees_iqd: feesTotal,
-          total_payable_iqd: totalPayable,
-          paid_duty_usd: paidAmountUsd,
-          paid_taxes_usd: parsed.paid_taxes_usd,
-          paid_duty_iqd: paidDutyIqd,
-          paid_taxes_iqd: paidTaxesIqd,
-          paid_amount_iqd: paidAmount,
-          difference_iqd: totalPayable - paidAmount,
-          duty_difference_iqd: dutyDifferenceIqd,
-          duty_difference_usd: dutyDifferenceIqd / parsed.fx_rate,
-          total_difference_iqd: totalDifferenceIqd,
-          total_difference_usd: totalDifferenceIqd / parsed.fx_rate,
+          sales_tax_usd: salesTaxSumUsd,
+          total_payable_usd: totalPayableUsd,
+          total_payable_iqd: totalPayableUsd * fxRate,
+          paid_usd: paidUsd,
+          difference_usd: differenceUsd,
+          difference_iqd: differenceUsd * fxRate,
         },
       });
     } catch (e: any) {

@@ -19,7 +19,6 @@ import {
   Plus,
   Trash2,
   Receipt,
-  MapPin,
   ArrowLeftRight,
   Loader2,
   Package,
@@ -88,12 +87,6 @@ type Product = {
   currency: string | null;
 };
 
-type Checkpoint = {
-  id: string;
-  name: string;
-  fees: { code: string; label: string; amount_iqd: number }[];
-};
-
 type CalcItem = {
   localId: string;
   hs_code: string;
@@ -104,7 +97,6 @@ type CalcItem = {
   duty_rate: number;
   protection_rate: number;
   category: string;
-  tax_deposit_rate: number;
   tsc_basis: "avg" | "min" | "max";
   tsc_min: number | null;
   tsc_avg: number | null;
@@ -113,67 +105,50 @@ type CalcItem = {
 };
 
 type CalcResult = {
-  checkpoint: { id: string; name: string };
   fx: { from: string; to: string; rate: number };
-  fees: { items: { code: string; label: string; amount_iqd: number }[]; total_iqd: number };
   items: {
     hs_code: string;
     description: string;
     quantity: number;
     unit: string;
-    invoice_total_value: number;
-    invoice_total_iqd: number;
-    invoice_unit_value: number;
-    invoice_unit_iqd: number;
-    tsc_unit_value_iqd: number;
+    invoice_total_usd: number;
+    invoice_unit_usd: number;
     gds_min_iqd: number;
     gds_max_iqd: number;
+    valuation_unit_usd: number;
     valuation_unit_iqd: number;
     valuation_flag: "normal" | "raised" | "audit";
-    customs_value_iqd: number;
+    customs_value_usd: number;
     duty_rate: number;
     protection_rate: number;
-    duty_before_discount_iqd: number;
-    duty_after_discount_iqd: number;
+    duty_after_discount_usd: number;
     discount_rate: number;
-    duty_iqd: number;
-    sales_tax_iqd: number;
-    municipal_tax_iqd: number;
-    tax_deposit_iqd: number;
+    sales_tax_usd: number;
     goods_category: string;
+    item_total_usd: number;
+    paid_duty_usd: number;
+    item_difference_usd: number;
     item_total_iqd: number;
-    paid_duty_iqd: number;
     item_difference_iqd: number;
   }[];
   summary: {
-    duty_iqd: number;
-    duty_before_discount_iqd: number;
-    duty_after_discount_iqd: number;
+    duty_after_discount_usd: number;
     discount_rate: number;
-    sales_tax_iqd: number;
-    municipal_tax_iqd: number;
-    tax_deposit_iqd: number;
-    fees_iqd: number;
+    sales_tax_usd: number;
+    total_payable_usd: number;
     total_payable_iqd: number;
-    paid_duty_usd: number;
-    paid_taxes_usd: number;
-    paid_duty_iqd: number;
-    paid_taxes_iqd: number;
-    paid_amount_iqd: number;
+    paid_usd: number;
+    difference_usd: number;
     difference_iqd: number;
-    duty_difference_iqd: number;
-    duty_difference_usd: number;
-    total_difference_iqd: number;
-    total_difference_usd: number;
   };
 };
 
-function formatIQD(n: number): string {
-  return Math.round(n).toLocaleString("en-US");
-}
-
 function formatUSD(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatIQD(n: number): string {
+  return Math.round(n).toLocaleString("en-US");
 }
 
 let idCounter = 0;
@@ -254,13 +229,11 @@ function ProductSearchPopup({
 
 export default function CalculatorPage() {
   const { toast } = useToast();
-  const [checkpointId, setCheckpointId] = useState<string>("");
   const [fxRate, setFxRate] = useState(1320);
   const [items, setItems] = useState<CalcItem[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
-  const [paidDutyUsd, setPaidDutyUsd] = useState(0);
-  const [paidTaxesUsd, setPaidTaxesUsd] = useState(0);
+  const [paidUsd, setPaidUsd] = useState(0);
   const [discountRate, setDiscountRate] = useState(25);
   const prefilled = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -296,29 +269,7 @@ export default function CalculatorPage() {
         const manifestItems = Array.isArray(parsed) ? parsed : (parsed.items || []);
 
         if (parsed.paid_amount_usd) {
-          setPaidDutyUsd(Number(parsed.paid_amount_usd) || 0);
-        }
-        if (parsed.paid_taxes_usd) {
-          setPaidTaxesUsd(Number(parsed.paid_taxes_usd) || 0);
-        }
-
-        if (parsed.checkpoint) {
-          const cpName = String(parsed.checkpoint).trim();
-          const checkpointMap: Record<string, string> = {
-            "إبراهيم خليل": "ibrahim_khalil",
-            "ابراهيم خليل": "ibrahim_khalil",
-            "ibrahim khalil": "ibrahim_khalil",
-            "سد الموصل": "mosul_dam",
-            "الموصل": "mosul_dam",
-            "دارمان": "darman",
-            "دهوك": "duhok",
-          };
-          const normalizedName = cpName.toLowerCase().trim();
-          const matchedId = checkpointMap[cpName] ||
-            Object.entries(checkpointMap).find(([k]) => normalizedName.includes(k.toLowerCase()))?.[1];
-          if (matchedId) {
-            setCheckpointId(matchedId);
-          }
+          setPaidUsd(Number(parsed.paid_amount_usd) || 0);
         }
 
         if (manifestItems.length > 0) {
@@ -331,7 +282,6 @@ export default function CalculatorPage() {
                 Math.abs(c.dutyRate - Number(p.duty_rate)) < Math.abs(best.dutyRate - Number(p.duty_rate)) ? c : best
               ).id;
             }
-            const cat = GOODS_CATEGORIES.find(c => c.id === matchedCatId);
             return {
               localId: nextId(),
               hs_code: String(p.hs_code || ""),
@@ -342,7 +292,6 @@ export default function CalculatorPage() {
               duty_rate: Number(p.duty_rate) > 0 ? Number(p.duty_rate) : 0.30,
               protection_rate: getAutoProtection(String(p.hs_code || "")),
               category: matchedCatId,
-              tax_deposit_rate: cat ? cat.taxDeposit : 0.03,
               tsc_basis: "avg" as const,
               tsc_min: null,
               tsc_avg: null,
@@ -363,7 +312,6 @@ export default function CalculatorPage() {
     const hs = params.get("hs");
     if (hs) {
       prefilled.current = true;
-      const consumerCat = GOODS_CATEGORIES.find(c => c.id === "consumer");
       setItems((prev) => [
         ...prev,
         {
@@ -376,7 +324,6 @@ export default function CalculatorPage() {
           duty_rate: 0.30,
           protection_rate: getAutoProtection(hs),
           category: "consumer",
-          tax_deposit_rate: consumerCat ? consumerCat.taxDeposit : 0.03,
           tsc_basis: "avg",
           tsc_min: null,
           tsc_avg: null,
@@ -388,10 +335,6 @@ export default function CalculatorPage() {
       window.history.replaceState({}, "", "/calculator");
     }
   }, []);
-
-  const { data: checkpoints, isLoading: cpLoading } = useQuery<Checkpoint[]>({
-    queryKey: ["/api/checkpoints"],
-  });
 
   const calcMutation = useMutation({
     mutationFn: async (body: unknown) => {
@@ -431,7 +374,6 @@ export default function CalculatorPage() {
         duty_rate: lawRate,
         protection_rate: getAutoProtection(product.hs_code),
         category: matchedCat.id,
-        tax_deposit_rate: matchedCat.taxDeposit,
         tsc_basis: "avg",
         tsc_min: product.min_value,
         tsc_avg: product.avg_value,
@@ -452,11 +394,10 @@ export default function CalculatorPage() {
   };
 
   const handleCategoryChange = (localId: string, categoryId: string) => {
-    const cat = GOODS_CATEGORIES.find((c) => c.id === categoryId);
     setItems((prev) =>
       prev.map((it) =>
         it.localId === localId
-          ? { ...it, category: categoryId, tax_deposit_rate: cat ? cat.taxDeposit : it.tax_deposit_rate }
+          ? { ...it, category: categoryId }
           : it
       )
     );
@@ -469,21 +410,15 @@ export default function CalculatorPage() {
   };
 
   const handleCalculate = () => {
-    if (!checkpointId) {
-      toast({ title: "اختر المنفذ", description: "يجب اختيار المنفذ الحدودي", variant: "destructive" });
-      return;
-    }
     if (items.length === 0) {
       toast({ title: "أضف منتج", description: "يجب إضافة منتج واحد على الأقل", variant: "destructive" });
       return;
     }
 
     calcMutation.mutate({
-      checkpoint_id: checkpointId,
       fx_rate: fxRate,
       invoice_currency: "USD",
-      paid_duty_usd: paidDutyUsd,
-      paid_taxes_usd: paidTaxesUsd,
+      paid_usd: paidUsd,
       discount_rate: discountRate / 100,
       items: items.map((it) => ({
         hs_code: it.hs_code,
@@ -492,7 +427,6 @@ export default function CalculatorPage() {
         invoice_total_value: it.invoice_total_value,
         duty_rate: it.duty_rate,
         protection_rate: it.protection_rate,
-        tax_deposit_rate: it.tax_deposit_rate,
         tsc_basis: it.tsc_basis,
         goods_category: it.category,
         paid_duty: it.paid_duty,
@@ -507,36 +441,11 @@ export default function CalculatorPage() {
           حاسبة الرسوم الكمركية
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          اختر المنفذ وأضف المنتجات لحساب الرسوم الكمركية
+          أضف المنتجات لحساب الرسوم الكمركية والضرائب
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <Label className="flex items-center gap-1.5 text-sm">
-              <MapPin className="h-3.5 w-3.5" />
-              المنفذ الحدودي
-            </Label>
-            {cpLoading ? (
-              <Skeleton className="h-9 w-full" />
-            ) : (
-              <Select value={checkpointId} onValueChange={setCheckpointId} data-testid="select-checkpoint">
-                <SelectTrigger data-testid="trigger-checkpoint">
-                  <SelectValue placeholder="اختر المنفذ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {checkpoints?.map((cp) => (
-                    <SelectItem key={cp.id} value={cp.id} data-testid={`option-checkpoint-${cp.id}`}>
-                      {cp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 space-y-2">
             <Label className="flex items-center gap-1.5 text-sm">
@@ -554,43 +463,22 @@ export default function CalculatorPage() {
             />
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 space-y-2">
             <Label className="flex items-center gap-1.5 text-sm">
               <Receipt className="h-3.5 w-3.5" />
-              الرسوم الجمركية المدفوعة (USD)
+              المدفوع (USD)
             </Label>
             <Input
               type="number"
               min={0}
-              value={paidDutyUsd}
+              value={paidUsd}
               onChange={(e) => {
-                setPaidDutyUsd(parseFloat(e.target.value) || 0);
+                setPaidUsd(parseFloat(e.target.value) || 0);
                 setResult(null);
               }}
               data-testid="input-paid-duty"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <Label className="flex items-center gap-1.5 text-sm">
-              <Receipt className="h-3.5 w-3.5" />
-              الضرائب المدفوعة (USD)
-            </Label>
-            <Input
-              type="number"
-              min={0}
-              value={paidTaxesUsd}
-              onChange={(e) => {
-                setPaidTaxesUsd(parseFloat(e.target.value) || 0);
-                setResult(null);
-              }}
-              data-testid="input-paid-taxes"
             />
           </CardContent>
         </Card>
@@ -678,7 +566,7 @@ export default function CalculatorPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">الكمية</Label>
                     <Input
@@ -729,18 +617,6 @@ export default function CalculatorPage() {
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">نسبة حماية المنتج</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={5}
-                      step={0.01}
-                      value={item.protection_rate}
-                      onChange={(e) => updateItem(item.localId, "protection_rate", parseFloat(e.target.value) || 0)}
-                      data-testid={`input-protection-rate-${idx}`}
-                    />
-                  </div>
-                  <div className="space-y-1">
                     <Label className="text-xs">أساس التقييم</Label>
                     <Select
                       value={item.tsc_basis}
@@ -760,7 +636,7 @@ export default function CalculatorPage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">نسبة الرسم % (قانون 22)</Label>
+                    <Label className="text-xs">نسبة الرسم %</Label>
                     <Input
                       type="number"
                       min={0}
@@ -772,15 +648,15 @@ export default function CalculatorPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">أمانة ضريبية %</Label>
+                    <Label className="text-xs">نسبة حماية المنتج %</Label>
                     <Input
                       type="number"
                       min={0}
-                      max={100}
+                      max={200}
                       step={1}
-                      value={Math.round(item.tax_deposit_rate * 100)}
-                      onChange={(e) => updateItem(item.localId, "tax_deposit_rate", (parseFloat(e.target.value) || 0) / 100)}
-                      data-testid={`input-tax-deposit-${idx}`}
+                      value={Math.round(item.protection_rate * 100)}
+                      onChange={(e) => updateItem(item.localId, "protection_rate", (parseFloat(e.target.value) || 0) / 100)}
+                      data-testid={`input-protection-rate-${idx}`}
                     />
                   </div>
                 </div>
@@ -821,48 +697,31 @@ export default function CalculatorPage() {
                 onClick={async () => {
                   const lines: string[] = [];
                   lines.push(`حاسبة الرسوم الكمركية`);
-                  lines.push(`المنفذ: ${result.checkpoint.name}`);
                   lines.push(`سعر الصرف: ${result.fx.rate.toLocaleString()} IQD/USD`);
-                  lines.push(`---`);
                   lines.push(`نسبة التخفيض: ${(result.summary.discount_rate * 100).toFixed(0)}%`);
                   lines.push(`---`);
                   result.items.forEach((ri) => {
                     lines.push(`${ri.hs_code} - ${ri.description}`);
                     lines.push(`  الكمية: ${ri.quantity} ${ri.unit}`);
-                    lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_value)} (${formatIQD(ri.invoice_total_iqd)} د.ع)`);
+                    lines.push(`  قيمة الفاتورة: $${formatUSD(ri.invoice_total_usd)}`);
                     if (ri.valuation_flag === "raised") {
                       lines.push(`  [رفع] رُفعت للحد الأدنى GDS: ${formatIQD(ri.gds_min_iqd)} د.ع`);
                     } else if (ri.valuation_flag === "audit") {
                       lines.push(`  [تدقيق] أعلى من الحد الأقصى GDS: ${formatIQD(ri.gds_max_iqd)} د.ع`);
                     }
-                    lines.push(`  CIF المعتمدة: ${formatIQD(ri.valuation_unit_iqd)} د.ع/وحدة`);
-                    lines.push(`  القيمة الكمركية: ${formatIQD(ri.customs_value_iqd)} د.ع`);
-                    lines.push(`  الرسم قبل التخفيض (${(ri.duty_rate * 100).toFixed(0)}%): ${formatIQD(ri.duty_before_discount_iqd)} د.ع`);
-                    lines.push(`  الرسم بعد التخفيض: ${formatIQD(ri.duty_after_discount_iqd)} د.ع`);
-                    lines.push(`  ضريبة مبيعات (5%): ${formatIQD(ri.sales_tax_iqd)} د.ع`);
-                    lines.push(`  ضريبة بلدية (2%): ${formatIQD(ri.municipal_tax_iqd)} د.ع`);
-                    lines.push(`  أمانة ضريبية: ${formatIQD(ri.tax_deposit_iqd)} د.ع`);
-                    lines.push(`  إجمالي رسوم المنتج: ${formatIQD(ri.item_total_iqd)} د.ع`);
+                    lines.push(`  القيمة الكمركية: $${formatUSD(ri.customs_value_usd)}`);
+                    lines.push(`  الرسم بعد التخفيض (${(ri.duty_rate * 100).toFixed(0)}%): $${formatUSD(ri.duty_after_discount_usd)}`);
+                    lines.push(`  ضريبة مبيعات (5%): $${formatUSD(ri.sales_tax_usd)}`);
+                    lines.push(`  إجمالي المنتج: $${formatUSD(ri.item_total_usd)}`);
                   });
                   lines.push(`---`);
-                  if (result.fees.items.length > 0) {
-                    result.fees.items.forEach((f) => {
-                      lines.push(`${f.label || f.code}: ${formatIQD(f.amount_iqd)} د.ع`);
-                    });
-                  }
-                  lines.push(`الرسم قبل التخفيض: ${formatIQD(result.summary.duty_before_discount_iqd)} د.ع`);
-                  lines.push(`الرسم بعد التخفيض: ${formatIQD(result.summary.duty_after_discount_iqd)} د.ع`);
-                  lines.push(`ضريبة مبيعات: ${formatIQD(result.summary.sales_tax_iqd)} د.ع`);
-                  lines.push(`ضريبة بلدية: ${formatIQD(result.summary.municipal_tax_iqd)} د.ع`);
-                  lines.push(`أمانة ضريبية: ${formatIQD(result.summary.tax_deposit_iqd)} د.ع`);
-                  lines.push(`رسوم المنفذ: ${formatIQD(result.summary.fees_iqd)} د.ع`);
-                  lines.push(`المجموع الكلي: ${formatIQD(result.summary.total_payable_iqd)} د.ع`);
-                  if (result.summary.paid_duty_iqd > 0 || result.summary.paid_taxes_iqd > 0) {
+                  lines.push(`الرسم بعد التخفيض: $${formatUSD(result.summary.duty_after_discount_usd)}`);
+                  lines.push(`ضريبة مبيعات: $${formatUSD(result.summary.sales_tax_usd)}`);
+                  lines.push(`المجموع الكلي: $${formatUSD(result.summary.total_payable_usd)} (${formatIQD(result.summary.total_payable_iqd)} د.ع)`);
+                  if (result.summary.paid_usd > 0) {
                     lines.push(`---`);
-                    lines.push(`الرسوم المدفوعة: $${formatUSD(result.summary.paid_duty_usd)} (${formatIQD(result.summary.paid_duty_iqd)} د.ع)`);
-                    lines.push(`الضرائب المدفوعة: $${formatUSD(result.summary.paid_taxes_usd)} (${formatIQD(result.summary.paid_taxes_iqd)} د.ع)`);
-                    lines.push(`فرق الجمرك: ${formatIQD(result.summary.duty_difference_iqd)} د.ع ($${formatUSD(result.summary.duty_difference_usd)})`);
-                    lines.push(`فرق الإجمالي: ${formatIQD(result.summary.total_difference_iqd)} د.ع ($${formatUSD(result.summary.total_difference_usd)})`);
+                    lines.push(`المدفوع: $${formatUSD(result.summary.paid_usd)}`);
+                    lines.push(`الفرق: $${formatUSD(result.summary.difference_usd)} (${formatIQD(result.summary.difference_iqd)} د.ع)`);
                   }
                   try {
                     await navigator.clipboard.writeText(lines.join("\n"));
@@ -882,8 +741,7 @@ export default function CalculatorPage() {
                 onClick={() => {
                   setResult(null);
                   setItems([]);
-                  setPaidDutyUsd(0);
-                  setPaidTaxesUsd(0);
+                  setPaidUsd(0);
                 }}
                 data-testid="button-reset"
               >
@@ -893,17 +751,10 @@ export default function CalculatorPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">المنفذ:</span>
-                <span className="font-medium">{result.checkpoint.name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">سعر الصرف:</span>
-                <span className="font-mono">{result.fx.rate.toLocaleString()} IQD/USD</span>
-              </div>
+            <div className="flex items-center gap-2 text-sm">
+              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground">سعر الصرف:</span>
+              <span className="font-mono">{result.fx.rate.toLocaleString()} IQD/USD</span>
             </div>
 
             {result.items.map((ri, idx) => (
@@ -931,68 +782,54 @@ export default function CalculatorPage() {
                       <span className="font-mono mr-1">{ri.quantity} {ri.unit}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">قيمة الوحدة بالفاتورة:</span>
+                      <span className="text-muted-foreground">قيمة الفاتورة:</span>
                       <span className={`font-mono mr-1 ${ri.valuation_flag === "raised" ? "line-through text-muted-foreground" : ""}`}>
-                        ${formatUSD(ri.invoice_unit_value)} ({formatIQD(ri.invoice_unit_iqd)} د.ع)
+                        ${formatUSD(ri.invoice_unit_usd)}/وحدة
                       </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">GDS الحد الأدنى:</span>
+                      <span className="text-muted-foreground">GDS أدنى:</span>
                       <span className="font-mono mr-1">{formatIQD(ri.gds_min_iqd)} د.ع</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">GDS الحد الأقصى:</span>
+                      <span className="text-muted-foreground">GDS أقصى:</span>
                       <span className="font-mono mr-1">{formatIQD(ri.gds_max_iqd)} د.ع</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">CIF المعتمدة للوحدة:</span>
+                      <span className="text-muted-foreground">CIF المعتمدة:</span>
                       <span className={`font-mono mr-1 font-bold ${ri.valuation_flag === "raised" ? "text-destructive" : ri.valuation_flag === "audit" ? "text-amber-400" : ""}`}>
-                        {formatIQD(ri.valuation_unit_iqd)} د.ع
+                        ${formatUSD(ri.valuation_unit_usd)}/وحدة
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">القيمة الكمركية:</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.customs_value_iqd)} د.ع</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.customs_value_usd)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">
-                        {ri.protection_rate > 0
-                          ? `الرسم قبل التخفيض (${((ri.duty_rate + ri.protection_rate) * 100).toFixed(0)}%):`
-                          : `الرسم قبل التخفيض (${(ri.duty_rate * 100).toFixed(0)}%):`}
+                        الرسم ({ri.protection_rate > 0 ? `${((ri.duty_rate + ri.protection_rate) * 100).toFixed(0)}%` : `${(ri.duty_rate * 100).toFixed(0)}%`}) بعد تخفيض {(ri.discount_rate * 100).toFixed(0)}%:
                       </span>
-                      <span className="font-mono mr-1">{formatIQD(ri.duty_before_discount_iqd)} د.ع</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">التخفيض ({(ri.discount_rate * 100).toFixed(0)}%):</span>
-                      <span className="font-bold font-mono mr-1">{formatIQD(ri.duty_after_discount_iqd)} د.ع</span>
+                      <span className="font-bold font-mono mr-1">${formatUSD(ri.duty_after_discount_usd)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">ضريبة مبيعات (5%):</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.sales_tax_iqd)} د.ع</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ضريبة بلدية (2%):</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.municipal_tax_iqd)} د.ع</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">أمانة ضريبية:</span>
-                      <span className="font-mono mr-1">{formatIQD(ri.tax_deposit_iqd)} د.ع</span>
+                      <span className="font-mono mr-1">${formatUSD(ri.sales_tax_usd)}</span>
                     </div>
                   </div>
                   <div className="border-t pt-2 mt-2 space-y-1">
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="text-muted-foreground">إجمالي رسوم المنتج:</span>
-                      <span className="font-mono font-bold">{formatIQD(ri.item_total_iqd)} د.ع</span>
+                      <span className="font-mono font-bold">${formatUSD(ri.item_total_usd)}</span>
                     </div>
-                    {ri.paid_duty_iqd > 0 && (
+                    {ri.paid_duty_usd > 0 && (
                       <>
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <span className="text-muted-foreground">المدفوع لهذا المنتج:</span>
-                          <span className="font-mono">{formatIQD(ri.paid_duty_iqd)} د.ع</span>
+                          <span className="font-mono">${formatUSD(ri.paid_duty_usd)}</span>
                         </div>
-                        <div className={`flex items-center justify-between gap-2 text-xs font-bold rounded-md px-2 py-1 ${ri.item_difference_iqd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                        <div className={`flex items-center justify-between gap-2 text-xs font-bold rounded-md px-2 py-1 ${ri.item_difference_usd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`}>
                           <span>فرق المنتج:</span>
-                          <span className="font-mono">{formatIQD(ri.item_difference_iqd)} د.ع</span>
+                          <span className="font-mono">${formatUSD(ri.item_difference_usd)}</span>
                         </div>
                       </>
                     )}
@@ -1001,85 +838,41 @@ export default function CalculatorPage() {
               </Card>
             ))}
 
-            {result.fees.items.length > 0 && (
-              <div className="space-y-1 text-sm">
-                <p className="text-muted-foreground text-xs">رسوم المنفذ:</p>
-                {result.fees.items.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2">
-                    <span>{f.label || f.code}</span>
-                    <span className="font-mono">{formatIQD(f.amount_iqd)} د.ع</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="border-t pt-3 space-y-2" data-testid="section-summary">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">الرسم قبل التخفيض:</span>
-                <span className="font-mono">{formatIQD(result.summary.duty_before_discount_iqd)} د.ع</span>
-              </div>
               <div className="flex items-center justify-between text-sm font-bold">
                 <span className="text-muted-foreground">الرسم بعد التخفيض ({(result.summary.discount_rate * 100).toFixed(0)}%):</span>
-                <span className="font-mono">{formatIQD(result.summary.duty_after_discount_iqd)} د.ع</span>
+                <span className="font-mono">${formatUSD(result.summary.duty_after_discount_usd)}</span>
               </div>
               <div className="flex items-center justify-between text-sm" data-testid="text-sales-tax">
                 <span className="text-muted-foreground">ضريبة المبيعات (5%):</span>
-                <span className="font-mono">{formatIQD(result.summary.sales_tax_iqd)} د.ع</span>
-              </div>
-              <div className="flex items-center justify-between text-sm" data-testid="text-municipal-tax">
-                <span className="text-muted-foreground">ضريبة البلدية (2%):</span>
-                <span className="font-mono">{formatIQD(result.summary.municipal_tax_iqd)} د.ع</span>
-              </div>
-              <div className="flex items-center justify-between text-sm" data-testid="text-tax-deposit">
-                <span className="text-muted-foreground">الأمانة الضريبية:</span>
-                <span className="font-mono">{formatIQD(result.summary.tax_deposit_iqd)} د.ع</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">رسوم المنفذ:</span>
-                <span className="font-mono">{formatIQD(result.summary.fees_iqd)} د.ع</span>
+                <span className="font-mono">${formatUSD(result.summary.sales_tax_usd)}</span>
               </div>
               <div className="flex items-center justify-between text-base font-bold bg-muted/50 rounded-md p-3" data-testid="text-total">
                 <span>المجموع الكلي المستحق:</span>
-                <span className="font-mono text-lg">{formatIQD(result.summary.total_payable_iqd)} د.ع</span>
+                <div className="text-left font-mono">
+                  <div className="text-lg">${formatUSD(result.summary.total_payable_usd)}</div>
+                  <div className="text-sm text-muted-foreground">{formatIQD(result.summary.total_payable_iqd)} د.ع</div>
+                </div>
               </div>
 
-              {(result.summary.paid_duty_iqd > 0 || result.summary.paid_taxes_iqd > 0) && (
+              {result.summary.paid_usd > 0 && (
                 <>
                   <div className="border-t pt-3 mt-2">
-                    <p className="text-xs text-muted-foreground mb-2">المدفوع فعلياً:</p>
+                    <p className="text-xs text-muted-foreground mb-2">المدفوع والفرق:</p>
                   </div>
-                  {result.summary.paid_duty_iqd > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">الرسوم الجمركية المدفوعة:</span>
-                      <span className="font-mono">${formatUSD(result.summary.paid_duty_usd)} ({formatIQD(result.summary.paid_duty_iqd)} د.ع)</span>
-                    </div>
-                  )}
-                  {result.summary.paid_taxes_iqd > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">الضرائب المدفوعة:</span>
-                      <span className="font-mono">${formatUSD(result.summary.paid_taxes_usd)} ({formatIQD(result.summary.paid_taxes_iqd)} د.ع)</span>
-                    </div>
-                  )}
-
-                  <div className="border-t pt-3 mt-2">
-                    <p className="text-xs text-muted-foreground mb-2">الفروقات:</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">المدفوع:</span>
+                    <span className="font-mono">${formatUSD(result.summary.paid_usd)}</span>
                   </div>
-                  <div className={`flex items-center justify-between text-sm font-bold rounded-md px-3 py-2 ${result.summary.duty_difference_iqd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`} data-testid="text-duty-diff">
-                    <span>فرق الجمرك فقط:</span>
+                  <div className={`flex items-center justify-between text-base font-bold rounded-md px-3 py-3 ${result.summary.difference_usd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`} data-testid="text-total-diff">
+                    <span>الفرق:</span>
                     <div className="text-left font-mono">
-                      <div>{formatIQD(result.summary.duty_difference_iqd)} د.ع</div>
-                      <div className="text-xs opacity-75">${formatUSD(result.summary.duty_difference_usd)}</div>
-                    </div>
-                  </div>
-                  <div className={`flex items-center justify-between text-base font-bold rounded-md px-3 py-3 ${result.summary.total_difference_iqd > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-400'}`} data-testid="text-total-diff">
-                    <span>فرق الإجمالي (جمرك + ضرائب):</span>
-                    <div className="text-left font-mono">
-                      <div className="text-lg">{formatIQD(result.summary.total_difference_iqd)} د.ع</div>
-                      <div className="text-sm opacity-75">${formatUSD(result.summary.total_difference_usd)}</div>
+                      <div className="text-lg">${formatUSD(result.summary.difference_usd)}</div>
+                      <div className="text-sm opacity-75">{formatIQD(result.summary.difference_iqd)} د.ع</div>
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground text-center mt-1">
-                    {result.summary.total_difference_iqd > 0 ? "موجب = عليك فرق" : "سالب = دافع زايد"}
+                    {result.summary.difference_usd > 0 ? "موجب = عليك فرق" : "سالب = دافع زايد"}
                   </div>
                 </>
               )}
