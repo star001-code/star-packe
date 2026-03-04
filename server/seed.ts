@@ -89,13 +89,26 @@ function normalizeRow(row: Record<string, any>): InsertProduct | null {
   };
 }
 
+async function refreshDutyRates(): Promise<void> {
+  const productCount = await storage.getProductCount();
+  if (productCount === 0) return;
+
+  log("Refreshing duty rates from CoM reduction tables...", "seed");
+  tariffData = null;
+  loadTariff();
+
+  const updated = await storage.updateAllDutyRates(lookupDutyRate);
+  log(`Updated duty rates for ${updated} products.`, "seed");
+}
+
 export async function runSeed(): Promise<void> {
   log("Seeding checkpoints...", "seed");
   await storage.seedCheckpoints();
 
   const productCount = await storage.getProductCount();
   if (productCount > 500) {
-    log(`Database already has ${productCount} products, skipping seed.`, "seed");
+    log(`Database already has ${productCount} products, updating duty rates...`, "seed");
+    await refreshDutyRates();
     return;
   }
 
