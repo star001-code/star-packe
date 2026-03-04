@@ -220,12 +220,8 @@ export default function SearchPage() {
   const valuationUnitIqd = Math.max(invoiceUnitIqd, tscUnitIqd);
   const customsValue = valuationUnitIqd * estimateQty;
   const dutyRate = selectedProduct?.duty_rate ?? suggested?.dutyRate ?? 0;
-  const taxDepositRate = suggested?.taxDeposit || 0;
   const duty = customsValue * (dutyRate + protectionRate);
-  const salesTax = customsValue * 0.05;
-  const municipalTax = (customsValue + duty) * 0.02;
-  const taxDeposit = customsValue * taxDepositRate;
-  const estimateTotal = duty + salesTax + municipalTax + taxDeposit;
+  const estimateTotal = duty;
 
   const renderTable = (products: Product[]) => (
     <div className="overflow-x-auto">
@@ -414,7 +410,6 @@ export default function SearchPage() {
                 <p className="text-sm font-medium">الفئة المقترحة: {suggested.label}</p>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                   <span>نسبة الرسم (قانون 22): {selectedProduct?.duty_rate != null ? `${Math.round(selectedProduct.duty_rate * 100)}%` : `${Math.round(suggested.dutyRate * 100)}%`}</span>
-                  <span>الأمانة الضريبية: {Math.round(suggested.taxDeposit * 100)}%</span>
                   <span>حماية: {Math.round(protectionRate * 100)}%</span>
                 </div>
               </div>
@@ -464,18 +459,6 @@ export default function SearchPage() {
                   <div className="flex justify-between gap-2 flex-wrap">
                     <span className="text-muted-foreground">الرسم الكمركي ({Math.round(dutyRate * 100)}%{protectionRate > 0 ? `+${Math.round(protectionRate * 100)}%` : ""}):</span>
                     <span>{formatIQD(duty)} د.ع</span>
-                  </div>
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">ضريبة المبيعات (5%):</span>
-                    <span>{formatIQD(salesTax)} د.ع</span>
-                  </div>
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">ضريبة البلدية (2%):</span>
-                    <span>{formatIQD(municipalTax)} د.ع</span>
-                  </div>
-                  <div className="flex justify-between gap-2 flex-wrap">
-                    <span className="text-muted-foreground">الأمانة الضريبية ({Math.round(taxDepositRate * 100)}%):</span>
-                    <span>{formatIQD(taxDeposit)} د.ع</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between gap-2 flex-wrap font-bold text-emerald-400" data-testid="text-estimate-total">
