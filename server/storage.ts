@@ -25,6 +25,7 @@ export interface IStorage {
   }>;
   seedCheckpoints(): Promise<void>;
   seedProducts(rows: InsertProduct[]): Promise<number>;
+  clearProducts(): Promise<void>;
   getProductCount(): Promise<number>;
   updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number>;
 }
@@ -214,6 +215,10 @@ export class DatabaseStorage implements IStorage {
       inserted += batch.length;
     }
     return inserted;
+  }
+
+  async clearProducts(): Promise<void> {
+    await db.delete(products);
   }
 
   async getProductCount(): Promise<number> {

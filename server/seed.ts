@@ -101,49 +101,133 @@ async function refreshDutyRates(): Promise<void> {
   log(`Updated duty rates for ${updated} products.`, "seed");
 }
 
+function loadSupplementaryData(): InsertProduct[] {
+  const rows: InsertProduct[] = [];
+
+  const tariffCleanPath = path.resolve("attached_assets/tariff_clean_1772608812305.json");
+  if (fs.existsSync(tariffCleanPath)) {
+    const raw = fs.readFileSync(tariffCleanPath, "utf-8");
+    const parsed = JSON.parse(raw.replace(/\bNaN\b/g, "null"));
+    if (Array.isArray(parsed)) {
+      for (const item of parsed) {
+        const hs = normHs(item.HS_Code);
+        if (!hs) continue;
+        const mn = toNum(item.CAL_MIN_VAL);
+        const mx = toNum(item.CAL_MAX_VAL);
+        let av = toNum(item.GDS_YER);
+        if ((av === null || av === 0) && mn !== null && mx !== null) av = (mn + mx) / 2.0;
+        const desc = String(item.Description || "");
+        const unit = String(item.Unit || "").replace(/^nan$/i, "");
+        if (mn === null && mx === null && av === null && !desc) continue;
+        rows.push({
+          hsCode: hs,
+          cstCode: null,
+          description: desc,
+          unit: unit || null,
+          minValue: mn,
+          avgValue: av,
+          maxValue: mx,
+          dutyRate: lookupDutyRate(hs),
+          currency: "USD",
+          sourcePage: null,
+          rawJson: JSON.stringify(item),
+        });
+      }
+    }
+    log(`Loaded ${rows.length} items from tariff_clean`, "seed");
+  }
+
+  const summaryPath = path.resolve("attached_assets/summary_products_full_1772608812305.json");
+  if (fs.existsSync(summaryPath)) {
+    const raw = fs.readFileSync(summaryPath, "utf-8");
+    const parsed = JSON.parse(raw.replace(/\bNaN\b/g, "null"));
+    let added = 0;
+    if (Array.isArray(parsed)) {
+      for (const item of parsed) {
+        const hs = normHs(item.IDE_HSC_NB1);
+        if (!hs) continue;
+        const mn = toNum(item.GDS_MIN);
+        const mx = toNum(item.GDS_MAX);
+        let av = toNum(item.GDS_YER);
+        if ((av === null || av === 0) && mn !== null && mx !== null) av = (mn + mx) / 2.0;
+        const desc = String(item.product || "");
+        if (mn === null && mx === null && av === null && !desc) continue;
+        rows.push({
+          hsCode: hs,
+          cstCode: null,
+          description: desc,
+          unit: null,
+          minValue: mn,
+          avgValue: av,
+          maxValue: mx,
+          dutyRate: lookupDutyRate(hs),
+          currency: "USD",
+          sourcePage: null,
+          rawJson: JSON.stringify(item),
+        });
+        added++;
+      }
+    }
+    log(`Loaded ${added} items from summary_products`, "seed");
+  }
+
+  return rows;
+}
+
 export async function runSeed(): Promise<void> {
   log("Seeding checkpoints...", "seed");
   await storage.seedCheckpoints();
 
   const productCount = await storage.getProductCount();
-  if (productCount > 500) {
-    log(`Database already has ${productCount} products, updating duty rates...`, "seed");
+  const EXPECTED_MIN = 15000;
+  if (productCount >= EXPECTED_MIN) {
+    log(`Database already has ${productCount} products (>=${EXPECTED_MIN}), updating duty rates...`, "seed");
     await refreshDutyRates();
     return;
   }
+  if (productCount > 500) {
+    log(`Database has ${productCount} products, clearing and re-seeding with supplementary data...`, "seed");
+    await storage.clearProducts();
+  }
+
+  const allRows: InsertProduct[] = [];
 
   const fullPath = path.resolve("attached_assets/TSC_2025-10-13_full.json");
   const legacyPath = path.resolve("attached_assets/iraq_customs_extracted/data/TSC_2025-10-13.json");
   const jsonPath = fs.existsSync(fullPath) ? fullPath : legacyPath;
-  if (!fs.existsSync(jsonPath)) {
-    log(`TSC JSON file not found, skipping product seed.`, "seed");
+  if (fs.existsSync(jsonPath)) {
+    log("Reading TSC JSON...", "seed");
+    const raw = fs.readFileSync(jsonPath, "utf-8");
+    const parsed = JSON.parse(raw);
+
+    let arr: any[];
+    if (Array.isArray(parsed)) {
+      arr = parsed;
+    } else {
+      arr = parsed.rows || parsed.data || parsed.items || [];
+    }
+
+    if (Array.isArray(arr)) {
+      for (const item of arr) {
+        if (typeof item !== "object" || item === null) continue;
+        const normalized = normalizeRow(item);
+        if (normalized) allRows.push(normalized);
+      }
+    }
+    log(`TSC: ${allRows.length} products`, "seed");
+  }
+
+  const supplementary = loadSupplementaryData();
+  const tscCount = allRows.length;
+  allRows.push(...supplementary);
+  log(`Total: ${tscCount} TSC + ${supplementary.length} supplementary = ${allRows.length} products`, "seed");
+
+  if (allRows.length === 0) {
+    log("No product data found, skipping seed.", "seed");
     return;
   }
 
-  log("Reading TSC JSON...", "seed");
-  const raw = fs.readFileSync(jsonPath, "utf-8");
-  const parsed = JSON.parse(raw);
-
-  let arr: any[];
-  if (Array.isArray(parsed)) {
-    arr = parsed;
-  } else {
-    arr = parsed.rows || parsed.data || parsed.items || [];
-  }
-
-  if (!Array.isArray(arr)) {
-    log("Unsupported TSC JSON shape.", "seed");
-    return;
-  }
-
-  const rows: InsertProduct[] = [];
-  for (const item of arr) {
-    if (typeof item !== "object" || item === null) continue;
-    const normalized = normalizeRow(item);
-    if (normalized) rows.push(normalized);
-  }
-
-  log(`Inserting ${rows.length} products...`, "seed");
-  const inserted = await storage.seedProducts(rows);
+  log(`Inserting ${allRows.length} products...`, "seed");
+  const inserted = await storage.seedProducts(allRows);
   log(`Seeded ${inserted} products successfully.`, "seed");
 }
