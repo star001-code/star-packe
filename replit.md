@@ -57,6 +57,10 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Feb 2026**: Search page shows duty rate column in products table and in product detail card
 - **Feb 2026**: Goods category change no longer overrides the law-based duty rate (only updates tax deposit rate)
 - **Mar 2026**: Integrated Council of Ministers duty reduction tables (جداول تقليص فئات الرسوم الكمركية) — consolidated chapter-level rates supersede Law 22 per-item rates
+- **Mar 2026**: Simplified calculator formula: (الوزن × متوسط أساس التقييم × تصنيف البضاعة) - الرسم المدفوع = الفرق
+- **Mar 2026**: 4 inputs per product: quantity, avg_value (auto-filled from DB), goods_category (determines rate), paid_duty
+- **Mar 2026**: Removed from calculator: CIF valuation, GDS min/max, discount rate, protection rate, invoice value, TSC basis selector
+- **Mar 2026**: Kept goods categories (26 categories with duty rates 5%-150%), auto-fill avg reference value from TSC database
 - **Mar 2026**: All 10,488 products updated: 4 rate tiers (5% gems, 10% food/chemicals/metals, 15% textiles/wood/vehicles, 30% alcohol/tobacco/electronics/weapons/antiques)
 - **Mar 2026**: Duty rates auto-refresh on every startup from tariff_law22_2010.json
 - **Mar 2026**: Removed checkpoint selector — calculator is now general (no specific checkpoint required)
