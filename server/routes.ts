@@ -10,14 +10,22 @@ const calcItemSchema = z.object({
   hs_code: z.string(),
   quantity: z.number().positive(),
   unit: z.string().optional().nullable(),
-  value_usd: z.number().min(0),
+  invoice_total_value: z.number().min(0),
   duty_rate: z.number().min(0),
+  protection_rate: z.number().min(0).default(0),
+  tax_deposit_rate: z.number().min(0).default(0.03),
+  tsc_basis: z.enum(["avg", "min", "max"]).default("avg"),
+  goods_category: z.string().optional().default("consumer"),
   paid_duty: z.number().min(0).default(0),
 });
 
 const calcRequestSchema = z.object({
+  checkpoint_id: z.string().optional().default(""),
   fx_rate: z.number().positive().default(1320),
+  invoice_currency: z.string().default("USD"),
   items: z.array(calcItemSchema).min(1),
+  paid_usd: z.number().min(0).default(0),
+  discount_rate: z.number().min(0).max(1).default(0.25),
 });
 
 function normHs(v: string): string {
@@ -149,48 +157,97 @@ export async function registerRoutes(
       const fxRate = parsed.fx_rate;
 
       const itemsOut: any[] = [];
-      let totalDutyUsd = 0;
-      let totalPaidUsd = 0;
+      let dutyAfterDiscountSumUsd = 0;
 
       for (const it of parsed.items) {
         const hs = normHs(it.hs_code);
         const rows = await storage.getProductsByHsCode(hs, it.unit || undefined, 1);
         const row = rows[0] || null;
-        const desc = row?.description || "";
-        const unit = row?.unit || it.unit || "";
 
-        const dutyUsd = it.quantity * it.value_usd * it.duty_rate;
-        const paidUsd = it.paid_duty || 0;
-        const diffUsd = dutyUsd - paidUsd;
-        const diffIqd = Math.round(diffUsd * fxRate);
+        let tscUnit = 0;
+        let desc = "";
+        let unit = row?.unit || it.unit || "";
 
-        totalDutyUsd += dutyUsd;
-        totalPaidUsd += paidUsd;
+        if (row) {
+          desc = row.description || "";
+          if (it.tsc_basis === "min") {
+            tscUnit = row.minValue ?? row.avgValue ?? 0;
+          } else if (it.tsc_basis === "max") {
+            tscUnit = row.maxValue ?? row.avgValue ?? 0;
+          } else {
+            tscUnit = row.avgValue ?? 0;
+          }
+        }
+
+        const invoiceUnitUsd = it.quantity ? it.invoice_total_value / it.quantity : 0;
+        const invoiceUnitIqd = invoiceUnitUsd * fxRate;
+
+        const gdsMin = row?.minValue ?? 0;
+        const gdsMax = row?.maxValue ?? 0;
+
+        let valuationUnitIqd = invoiceUnitIqd;
+        let valuationFlag: "normal" | "raised" | "audit" = "normal";
+
+        if (gdsMin > 0 && invoiceUnitIqd < gdsMin) {
+          valuationUnitIqd = gdsMin;
+          valuationFlag = "raised";
+        } else if (gdsMax > 0 && invoiceUnitIqd > gdsMax) {
+          valuationFlag = "audit";
+        }
+
+        const valuationUnitUsd = valuationUnitIqd / fxRate;
+        const customsValueUsd = valuationUnitUsd * it.quantity;
+
+        const dutyBeforeDiscountUsd = customsValueUsd * (it.duty_rate + it.protection_rate);
+        const dutyAfterDiscountUsd = dutyBeforeDiscountUsd * (1 - parsed.discount_rate);
+
+        const itemTotalUsd = dutyAfterDiscountUsd;
+        const paidDutyUsd = it.paid_duty || 0;
+        const itemDifferenceUsd = itemTotalUsd - paidDutyUsd;
+
+        dutyAfterDiscountSumUsd += dutyAfterDiscountUsd;
 
         itemsOut.push({
           hs_code: hs,
           description: desc,
           quantity: it.quantity,
           unit,
-          value_usd: it.value_usd,
+          invoice_total_usd: it.invoice_total_value,
+          invoice_unit_usd: invoiceUnitUsd,
+          gds_min_iqd: gdsMin,
+          gds_max_iqd: gdsMax,
+          valuation_unit_usd: valuationUnitUsd,
+          valuation_unit_iqd: valuationUnitIqd,
+          valuation_flag: valuationFlag,
+          customs_value_usd: customsValueUsd,
           duty_rate: it.duty_rate,
-          duty_usd: dutyUsd,
-          paid_duty_usd: paidUsd,
-          difference_usd: diffUsd,
-          difference_iqd: diffIqd,
+          protection_rate: it.protection_rate,
+          duty_after_discount_usd: dutyAfterDiscountUsd,
+          discount_rate: parsed.discount_rate,
+          goods_category: it.goods_category,
+          item_total_usd: itemTotalUsd,
+          paid_duty_usd: paidDutyUsd,
+          item_difference_usd: itemDifferenceUsd,
+          item_total_iqd: itemTotalUsd * fxRate,
+          item_difference_iqd: itemDifferenceUsd * fxRate,
         });
       }
 
-      const totalDiffUsd = totalDutyUsd - totalPaidUsd;
+      const totalPayableUsd = dutyAfterDiscountSumUsd;
+      const paidUsd = parsed.paid_usd || 0;
+      const differenceUsd = totalPayableUsd - paidUsd;
 
       res.json({
-        fx_rate: fxRate,
+        fx: { from: parsed.invoice_currency, to: "IQD", rate: fxRate },
         items: itemsOut,
         summary: {
-          total_duty_usd: totalDutyUsd,
-          total_paid_usd: totalPaidUsd,
-          total_difference_usd: totalDiffUsd,
-          total_difference_iqd: Math.round(totalDiffUsd * fxRate),
+          duty_after_discount_usd: dutyAfterDiscountSumUsd,
+          discount_rate: parsed.discount_rate,
+          total_payable_usd: totalPayableUsd,
+          total_payable_iqd: totalPayableUsd * fxRate,
+          paid_usd: paidUsd,
+          difference_usd: differenceUsd,
+          difference_iqd: differenceUsd * fxRate,
         },
       });
     } catch (e: any) {
