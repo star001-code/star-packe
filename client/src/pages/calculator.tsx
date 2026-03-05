@@ -43,6 +43,7 @@ type CalcItem = {
   value_usd: number;
   duty_rate: number;
   paid_duty: number;
+  avg_value: number | null;
 };
 
 type CalcResult = {
@@ -89,7 +90,7 @@ function ProductSearchPopup({
 }) {
   const [q, setQ] = useState("");
   const { data, isLoading } = useQuery<Product[]>({
-    queryKey: ["/api/search", q],
+    queryKey: [`/api/search?q=${encodeURIComponent(q)}&limit=20`],
     enabled: q.length >= 2,
   });
 
@@ -177,6 +178,7 @@ export default function CalculatorPage() {
             value_usd: Number(p.total_value) || 0,
             duty_rate: Number(p.duty_rate) > 0 ? Number(p.duty_rate) : 0.30,
             paid_duty: Number(p.duty_amount) || 0,
+            avg_value: null,
           }));
           setItems(newItems);
         }
@@ -199,6 +201,7 @@ export default function CalculatorPage() {
           value_usd: 0,
           duty_rate: 0.30,
           paid_duty: 0,
+          avg_value: null,
         },
       ]);
       window.history.replaceState({}, "", "/calculator");
@@ -228,6 +231,10 @@ export default function CalculatorPage() {
 
   const addProduct = (product: Product) => {
     const lawRate = product.duty_rate ?? 0.20;
+    const isUsd = product.currency === "USD";
+    const avgVal = product.avg_value != null
+      ? (isUsd ? product.avg_value : product.avg_value / 1320)
+      : null;
     setItems((prev) => [
       ...prev,
       {
@@ -236,9 +243,10 @@ export default function CalculatorPage() {
         description: product.description || "",
         quantity: 1,
         unit: product.unit || "",
-        value_usd: 0,
+        value_usd: avgVal != null ? Math.round(avgVal * 100) / 100 : 0,
         duty_rate: lawRate,
         paid_duty: 0,
+        avg_value: avgVal != null ? Math.round(avgVal * 100) / 100 : null,
       },
     ]);
     setResult(null);
@@ -284,7 +292,7 @@ export default function CalculatorPage() {
           حاسبة الرسوم الكمركية
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          الوزن × القيمة × نسبة الرسم% = الرسم
+          الوزن × القيمة الاستدلالية × نسبة الرسم% = الرسم
         </p>
       </div>
 
@@ -365,7 +373,14 @@ export default function CalculatorPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">القيمة (USD)</Label>
+                    <Label className="text-xs">
+                      القيمة الاستدلالية (USD)
+                      {item.avg_value != null && (
+                        <span className="text-emerald-400 font-mono mr-1">
+                          متوسط: {item.avg_value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </Label>
                     <Input
                       type="number"
                       min={0}
@@ -439,7 +454,7 @@ export default function CalculatorPage() {
                   result.items.forEach((ri) => {
                     lines.push(`${ri.hs_code} - ${ri.description}`);
                     lines.push(`  الوزن: ${ri.quantity} ${ri.unit}`);
-                    lines.push(`  القيمة: $${formatUSD(ri.value_usd)}`);
+                    lines.push(`  القيمة الاستدلالية: $${formatUSD(ri.value_usd)}`);
                     lines.push(`  نسبة الرسم: ${(ri.duty_rate * 100).toFixed(0)}%`);
                     lines.push(`  الرسم: $${formatUSD(ri.duty_usd)}`);
                     if (ri.paid_duty_usd > 0) {
@@ -496,7 +511,7 @@ export default function CalculatorPage() {
                   </div>
                   <div className="rounded-md bg-muted/50 p-3 space-y-1 text-xs font-mono">
                     <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">الوزن × القيمة × نسبة الرسم:</span>
+                      <span className="text-muted-foreground">الوزن × القيمة الاستدلالية × نسبة الرسم:</span>
                       <span>{ri.quantity} × ${formatUSD(ri.value_usd)} × {(ri.duty_rate * 100).toFixed(0)}%</span>
                     </div>
                     <div className="flex justify-between gap-2 font-bold text-base">
