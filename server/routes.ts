@@ -162,7 +162,7 @@ export async function registerRoutes(
 
         const dutyUsd = it.quantity * it.avg_value * it.duty_rate;
         const paidUsd = it.paid_duty || 0;
-        const diffUsd = dutyUsd - paidUsd;
+        const diffUsd = paidUsd - dutyUsd;
         const diffIqd = Math.round(diffUsd * fxRate);
 
         totalDutyUsd += dutyUsd;
@@ -183,7 +183,7 @@ export async function registerRoutes(
         });
       }
 
-      const totalDiffUsd = totalDutyUsd - totalPaidUsd;
+      const totalDiffUsd = totalPaidUsd - totalDutyUsd;
 
       res.json({
         fx_rate: fxRate,
