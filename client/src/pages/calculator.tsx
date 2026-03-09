@@ -365,7 +365,7 @@ export default function CalculatorPage() {
       text += `\n${i + 1}. ${it.description || it.hs_code}\n`;
       text += `   HS: ${it.hs_code}\n`;
       text += `   الوزن: ${it.quantity} | متوسط التقييم: $${formatUSD(it.avg_value)} | التصنيف: ${catLabel} (${(it.duty_rate * 100).toFixed(0)}%)\n`;
-      text += `   الرسم: $${formatUSD(it.duty_usd)} | المدفوع: $${formatUSD(it.paid_duty_usd)}\n`;
+      text += `   المدفوع: $${formatUSD(it.paid_duty_usd)} | الرسم المحسوب: $${formatUSD(it.duty_usd)}\n`;
       text += `   الفرق: $${formatUSD(it.difference_usd)} = ${formatIQD(it.difference_iqd)} د.ع\n`;
     });
     text += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
@@ -389,7 +389,7 @@ export default function CalculatorPage() {
           حاسبة الرسوم الكمركية
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          (الوزن × متوسط أساس التقييم × تصنيف البضاعة) - الرسم المدفوع = الفرق
+          الرسم المدفوع - (متوسط التقييم × الوزن × تصنيف البضاعة) = الفرق
         </p>
       </div>
 
@@ -573,7 +573,7 @@ export default function CalculatorPage() {
             <CardContent className="space-y-4">
               {result.items.map((it, i) => {
                 const catLabel = GOODS_CATEGORIES.find(c => c.id === it.goods_category)?.label || "";
-                const diffColor = it.difference_usd > 0 ? "text-red-400" : it.difference_usd < 0 ? "text-green-400" : "text-muted-foreground";
+                const diffColor = it.difference_usd > 0 ? "text-green-400" : it.difference_usd < 0 ? "text-red-400" : "text-muted-foreground";
                 return (
                   <Card key={i} className="bg-muted/30" data-testid={`result-item-${i}`}>
                     <CardContent className="p-3 space-y-2">
@@ -626,7 +626,7 @@ export default function CalculatorPage() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">إجمالي الفرق</p>
-                      <p className={`text-lg font-bold ${result.summary.total_difference_usd > 0 ? "text-red-400" : result.summary.total_difference_usd < 0 ? "text-green-400" : ""}`} data-testid="text-total-diff">
+                      <p className={`text-lg font-bold ${result.summary.total_difference_usd > 0 ? "text-green-400" : result.summary.total_difference_usd < 0 ? "text-red-400" : ""}`} data-testid="text-total-diff">
                         ${formatUSD(result.summary.total_difference_usd)}
                       </p>
                       <p className="text-sm text-muted-foreground" data-testid="text-total-diff-iqd">
