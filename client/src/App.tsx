@@ -3,9 +3,12 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
+import { createContext } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { useTheme } from "@/hooks/use-theme";
+import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import About from "@/pages/about";
@@ -13,6 +16,16 @@ import SearchPage from "@/pages/search";
 import CalculatorPage from "@/pages/calculator";
 import ManifestPage from "@/pages/manifest";
 import NotFound from "@/pages/not-found";
+
+export const ThemeContext = createContext<{
+  theme: "light" | "dark";
+  toggleTheme: () => void;
+  isDark: boolean;
+}>({
+  theme: "dark",
+  toggleTheme: () => {},
+  isDark: true,
+});
 
 function Router() {
   return (
@@ -29,9 +42,7 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
+  const { theme, toggleTheme, isDark } = useTheme();
 
   const style = {
     "--sidebar-width": "16rem",
@@ -41,24 +52,40 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 shrink-0 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="h-4 w-px bg-border/50" />
-                <span className="text-sm font-semibold text-gradient-gold">
-                  حاسبة فرق الرسم الكمركي
-                </span>
-              </header>
-              <main className="flex-1 overflow-auto p-5">
-                <Router />
-              </main>
+        <ThemeContext.Provider value={{ theme, toggleTheme, isDark }}>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <header className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 shrink-0 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="h-4 w-px bg-border/50" />
+                  <span className="text-sm font-semibold text-gradient-gold">
+                    حاسبة فرق الرسم الكمركي
+                  </span>
+                  <div className="flex-1" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="h-8 w-8 rounded-lg"
+                    data-testid="button-theme-toggle"
+                  >
+                    {isDark ? (
+                      <Sun className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Moon className="h-4 w-4 text-primary" />
+                    )}
+                  </Button>
+                </header>
+                <main className="flex-1 overflow-auto p-5">
+                  <Router />
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-        <Toaster />
+          </SidebarProvider>
+          <Toaster />
+        </ThemeContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
   );

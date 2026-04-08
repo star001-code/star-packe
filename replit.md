@@ -17,6 +17,11 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Apr 2026**: Added custom utility classes: glass-card, gradient-gold, gradient-dark, glow-gold, text-gradient-gold
 - **Apr 2026**: Refined scrollbar styling, shadows enabled in dark mode, improved border/card contrast
 - **Apr 2026**: Updated about page with refined table styling (rounded borders, header backgrounds, primary-colored values)
+- **Apr 2026**: Added theme toggle (dark/light mode) — button in header and sidebar, persists to localStorage, updates meta theme-color
+- **Apr 2026**: Created `useTheme` hook (`client/src/hooks/use-theme.ts`) with localStorage persistence
+- **Apr 2026**: ThemeContext in App.tsx provides theme state to all components
+- **Apr 2026**: Light mode has warm cream/amber palette, dark mode has deep navy with golden accents
+- **Apr 2026**: Text gradient utility adapts to light/dark modes for readability
 
 - **Feb 2026**: Built multi-page app with login, about, and product search pages
 - **Feb 2026**: Added session-based authentication (express-session + bcryptjs + connect-pg-simple)
