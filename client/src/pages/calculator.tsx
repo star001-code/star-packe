@@ -78,6 +78,9 @@ type Product = {
   cst_code: string | null;
   description: string | null;
   unit: string | null;
+  is_protected: boolean | null;
+  protection_level: string | null;
+  protection_percentage: number | null;
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
@@ -410,7 +413,7 @@ export default function CalculatorPage() {
       avgUsd = product.currency === "USD" ? product.avg_value : product.avg_value / 1320;
     }
 
-    const protRate = getProtectionRate(product.hs_code);
+    const protRate = product.protection_percentage != null ? product.protection_percentage : getProtectionRate(product.hs_code);
     const localId = nextId();
 
     setItems((prev) => [

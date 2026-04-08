@@ -47,6 +47,8 @@ export const products = pgTable("products", {
   weight: real("weight"),
   unitPrice: real("unit_price"),
   isProtected: boolean("is_protected").default(false),
+  protectionLevel: text("protection_level"),
+  protectionPercentage: real("protection_percentage"),
   minValue: real("min_value"),
   avgValue: real("avg_value"),
   maxValue: real("max_value"),

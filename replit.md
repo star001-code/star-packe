@@ -51,8 +51,8 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM with `drizzle-zod`.
 - **Schema**: Includes tables for `users`, `checkpoints`, `checkpoint_fees`, and an expanded `products` table.
-    - `products` table contains HS code, CST code, description, unit, min/avg/max values, and `duty_rate`.
-- **Seeding**: Populated with 3,962 products from a single authoritative reference file (`products_1775625449791.json`, all USD). Duty rates are looked up from `tariff_law22_2010.json`. Checkpoint data also re-seeds on startup.
+    - `products` table contains HS code, CST code, description, unit, weight, unit_price, min/avg/max values, `duty_rate`, `is_protected`, `protection_level` (low/medium/high/none), and `protection_percentage`.
+- **Seeding**: Populated with 12,601 products from `products_with_protection.json` (all USD, with protection data). Duty rates are looked up from `tariff_law22_2010.json`. Checkpoint data also re-seeds on startup.
 
 # External Dependencies
 
@@ -70,6 +70,6 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **openai**: For AI-powered manifest image extraction.
 
 ## Reference Data
-- `attached_assets/products_1775625449791.json`: **Authoritative product reference** — 3,962 products, 1,560 unique HS codes, all USD. This is the single source of truth for product data.
+- `attached_assets/products_with_protection.json`: **Authoritative product reference** — 12,601 products with protection data (is_protected, protection_level, protection_percentage). This is the single source of truth for product data.
 - `attached_assets/tariff_law22_2010.json`: Iraqi Customs Tariff Law duty rates for HS code lookups.
-- Seed process (`server/seed.ts`) loads exclusively from the reference products file — old TSC/supplementary data sources were removed.
+- Seed process (`server/seed.ts`) loads exclusively from the reference products file.
