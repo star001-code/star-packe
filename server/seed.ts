@@ -40,7 +40,7 @@ function lookupDutyRate(hsCode: string): number | null {
 }
 
 function loadReferenceProducts(): InsertProduct[] {
-  const refPath = path.resolve("attached_assets/products_1775625449791.json");
+  const refPath = path.resolve("attached_assets/products_with_protection.json");
   if (!fs.existsSync(refPath)) {
     log("Reference products file not found!", "seed");
     return [];
@@ -64,11 +64,18 @@ function loadReferenceProducts(): InsertProduct[] {
     const desc = String(item.product || "").trim();
     if (mn === null && mx === null && av === null && !desc) continue;
 
+    const isProtected = item.protection === true;
+    const protLevel = String(item.protection_level || "").trim() || null;
+    const protPct = toNum(item.protection_percentage);
+
     rows.push({
       hsCode: hs,
       cstCode: null,
       description: desc,
       unit: null,
+      isProtected,
+      protectionLevel: protLevel,
+      protectionPercentage: protPct,
       minValue: mn,
       avgValue: av,
       maxValue: mx,

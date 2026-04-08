@@ -49,6 +49,8 @@ type Product = {
   weight: number | null;
   unit_price: number | null;
   is_protected: boolean | null;
+  protection_level: string | null;
+  protection_percentage: number | null;
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
@@ -217,7 +219,10 @@ export default function SearchPage() {
   const totalPages = browseData?.total_pages || 1;
   const totalCount = browseData?.total_count || 0;
 
-  const protection = selectedProduct ? getAutoProtection(selectedProduct.hs_code) : null;
+  const autoProtection = selectedProduct ? getAutoProtection(selectedProduct.hs_code) : null;
+  const protection = selectedProduct?.protection_percentage != null && selectedProduct.protection_percentage > 0
+    ? { rate: selectedProduct.protection_percentage, label: `حماية منتج (${selectedProduct.protection_level || ""})`  }
+    : autoProtection;
   const suggested = selectedProduct ? suggestCategory(selectedProduct.hs_code) : null;
   const protectionRate = protection ? protection.rate : 0;
 
@@ -283,10 +288,10 @@ export default function SearchPage() {
                 {product.is_protected ? (
                   <Badge variant="destructive" className="text-xs px-1.5 py-0.5" data-testid={`badge-protected-${product.id}`}>
                     <ShieldCheck className="h-3 w-3 ml-0.5" />
-                    نعم
+                    {product.protection_percentage != null ? `${product.protection_percentage}%` : "نعم"}
                   </Badge>
                 ) : (
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground">{product.protection_percentage != null && product.protection_percentage > 0 ? `${product.protection_percentage}%` : "0"}</span>
                 )}
               </TableCell>
               <TableCell className="text-sm font-mono whitespace-nowrap" data-testid={`text-duty-rate-${product.id}`}>
@@ -431,9 +436,20 @@ export default function SearchPage() {
                   <span className="text-xs text-muted-foreground">حماية المنتج</span>
                   <p data-testid="text-detail-protection">
                     {selectedProduct.is_protected ? (
-                      <Badge variant="destructive" className="text-xs">محمي</Badge>
+                      <span className="flex items-center gap-1">
+                        <Badge variant="destructive" className="text-xs">محمي</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {selectedProduct.protection_percentage != null ? `${selectedProduct.protection_percentage}%` : ""}
+                          {selectedProduct.protection_level ? ` (${selectedProduct.protection_level})` : ""}
+                        </span>
+                      </span>
                     ) : (
-                      <span className="text-muted-foreground">غير محمي</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        غير محمي
+                        {selectedProduct.protection_percentage != null && selectedProduct.protection_percentage > 0 && (
+                          <span className="text-xs">({selectedProduct.protection_percentage}%)</span>
+                        )}
+                      </span>
                     )}
                   </p>
                 </div>
