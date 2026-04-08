@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useContext } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,9 +12,10 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage } from "lucide-react";
+import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ThemeContext } from "@/App";
 import logoImg from "@assets/IMG_2293_1770690757765.png";
 
 const menuItems = [
@@ -27,6 +29,7 @@ const menuItems = [
 export function AppSidebar() {
   const [location, navigate] = useLocation();
   const { user, isLoggedIn, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useContext(ThemeContext);
 
   const isActive = (url: string) => {
     if (url === "/") return location === "/";
@@ -80,6 +83,23 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[11px] tracking-wider text-muted-foreground/70">المظهر</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={toggleTheme}
+                  data-testid="button-theme-sidebar"
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  <span>{isDark ? "الوضع الفاتح" : "الوضع الداكن"}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
