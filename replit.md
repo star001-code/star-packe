@@ -8,6 +8,16 @@ Preferred communication style: Simple, everyday language (Arabic).
 
 ## Recent Changes
 
+- **Apr 2026**: Complete UI redesign — premium dark theme with golden/amber accent colors (hsl 38), glass-morphism cards, gradient backgrounds, backdrop blur effects
+- **Apr 2026**: Redesigned login page with centered logo, glowing card, gradient submit button, security badge
+- **Apr 2026**: Redesigned home page with hero banner, gradient stat cards, animated nav cards with hover effects
+- **Apr 2026**: Redesigned sidebar with gold gradient branding, refined dividers, user avatar with gradient background
+- **Apr 2026**: Redesigned app header with backdrop blur, gold gradient title text
+- **Apr 2026**: All page headers now have consistent gradient banner with golden icon boxes
+- **Apr 2026**: Added custom utility classes: glass-card, gradient-gold, gradient-dark, glow-gold, text-gradient-gold
+- **Apr 2026**: Refined scrollbar styling, shadows enabled in dark mode, improved border/card contrast
+- **Apr 2026**: Updated about page with refined table styling (rounded borders, header backgrounds, primary-colored values)
+
 - **Feb 2026**: Built multi-page app with login, about, and product search pages
 - **Feb 2026**: Added session-based authentication (express-session + bcryptjs + connect-pg-simple)
 - **Feb 2026**: Re-extracted TSC PDF data achieving 10,488 products (from 9,434 previously)
