@@ -589,8 +589,11 @@ export default function CalculatorPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs">
+                  <Label className="text-xs flex items-center gap-1">
                     متوسط أساس التقييم (USD)
+                    {item.tsc_avg_hint !== null && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 text-green-500 border-green-500/30">تلقائي</Badge>
+                    )}
                   </Label>
                   <Input
                     type="number"
@@ -600,10 +603,14 @@ export default function CalculatorPage() {
                     onChange={(e) => updateItem(item.localId, "avg_value", parseFloat(e.target.value) || 0)}
                     data-testid={`input-value-${idx}`}
                   />
-                  {item.tsc_avg_hint !== null && (
-                    <p className="text-xs text-green-500" data-testid={`hint-avg-${idx}`}>
-                      متوسط: {item.tsc_avg_hint.toFixed(2)}
-                    </p>
+                  {item.tsc_avg_hint !== null && item.avg_value !== item.tsc_avg_hint && (
+                    <button
+                      className="text-xs text-green-500 hover:text-green-400 underline underline-offset-2 cursor-pointer"
+                      onClick={() => updateItem(item.localId, "avg_value", item.tsc_avg_hint!)}
+                      data-testid={`hint-avg-${idx}`}
+                    >
+                      تطبيق المتوسط: {item.tsc_avg_hint.toFixed(2)}
+                    </button>
                   )}
                 </div>
 
