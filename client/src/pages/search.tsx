@@ -32,6 +32,10 @@ import {
   Shield,
   Percent,
   Zap,
+  Weight,
+  Tag,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -42,6 +46,9 @@ type Product = {
   cst_code: string | null;
   description: string | null;
   unit: string | null;
+  weight: number | null;
+  unit_price: number | null;
+  is_protected: boolean | null;
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
@@ -231,6 +238,9 @@ export default function SearchPage() {
             <TableHead className="text-right">رمز HS</TableHead>
             <TableHead className="text-right">الوصف</TableHead>
             <TableHead className="text-right">الوحدة</TableHead>
+            <TableHead className="text-right">الوزن</TableHead>
+            <TableHead className="text-right">سعر الوحدة</TableHead>
+            <TableHead className="text-right">حماية</TableHead>
             <TableHead className="text-right">الرسم %</TableHead>
             <TableHead className="text-right">أدنى</TableHead>
             <TableHead className="text-right">متوسط</TableHead>
@@ -262,6 +272,22 @@ export default function SearchPage() {
               </TableCell>
               <TableCell className="text-sm whitespace-nowrap">
                 {product.unit || "-"}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap">
+                {formatNumber(product.weight)}
+              </TableCell>
+              <TableCell className="text-sm font-mono whitespace-nowrap">
+                {formatNumber(product.unit_price)}
+              </TableCell>
+              <TableCell className="text-sm whitespace-nowrap text-center">
+                {product.is_protected ? (
+                  <Badge variant="destructive" className="text-xs px-1.5 py-0.5" data-testid={`badge-protected-${product.id}`}>
+                    <ShieldCheck className="h-3 w-3 ml-0.5" />
+                    نعم
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
               </TableCell>
               <TableCell className="text-sm font-mono whitespace-nowrap" data-testid={`text-duty-rate-${product.id}`}>
                 {product.duty_rate != null ? `${Math.round(product.duty_rate * 100)}%` : "-"}
@@ -381,6 +407,37 @@ export default function SearchPage() {
                   </div>
                 </div>
               )}
+              <div className="flex items-start gap-2">
+                <Weight className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs text-muted-foreground">الوزن</span>
+                  <p data-testid="text-detail-weight">{formatNumber(selectedProduct.weight)}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs text-muted-foreground">سعر الوحدة</span>
+                  <p data-testid="text-detail-unit-price">{formatNumber(selectedProduct.unit_price)}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                {selectedProduct.is_protected ? (
+                  <ShieldCheck className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                ) : (
+                  <ShieldOff className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                )}
+                <div>
+                  <span className="text-xs text-muted-foreground">حماية المنتج</span>
+                  <p data-testid="text-detail-protection">
+                    {selectedProduct.is_protected ? (
+                      <Badge variant="destructive" className="text-xs">محمي</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">غير محمي</span>
+                    )}
+                  </p>
+                </div>
+              </div>
               <div className="flex items-start gap-2">
                 <Coins className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div>
