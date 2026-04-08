@@ -197,21 +197,51 @@ export default function CalculatorPage() {
   const prefilled = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
-  const fetchAvgValueForHsCode = async (hsCode: string): Promise<{ avgUsd: number; dutyRate: number | null }> => {
-    if (!hsCode) return { avgUsd: 0, dutyRate: null };
+  const extractBestValue = (products: Product[]): { avgUsd: number; dutyRate: number | null } => {
+    const usdProduct = products.find(p => p.currency === "USD" && p.avg_value && p.avg_value > 0);
+    if (usdProduct) {
+      return { avgUsd: usdProduct.avg_value!, dutyRate: usdProduct.duty_rate ?? null };
+    }
+    const iqdProduct = products.find(p => p.avg_value && p.avg_value > 0);
+    if (iqdProduct) {
+      return { avgUsd: parseFloat((iqdProduct.avg_value! / 1320).toFixed(4)), dutyRate: iqdProduct.duty_rate ?? null };
+    }
+    return { avgUsd: 0, dutyRate: products[0]?.duty_rate ?? null };
+  };
+
+  const fetchAvgValueForHsCode = async (hsCode: string, description?: string): Promise<{ avgUsd: number; dutyRate: number | null }> => {
+    if (!hsCode && !description) return { avgUsd: 0, dutyRate: null };
     try {
-      const res = await fetch(`/api/hs/${encodeURIComponent(hsCode)}?limit=50`);
-      if (!res.ok) return { avgUsd: 0, dutyRate: null };
-      const products: Product[] = await res.json();
-      const usdProduct = products.find(p => p.currency === "USD" && p.avg_value && p.avg_value > 0);
-      if (usdProduct) {
-        return { avgUsd: usdProduct.avg_value!, dutyRate: usdProduct.duty_rate ?? null };
+      const codesToTry = [];
+      if (hsCode) {
+        codesToTry.push(hsCode);
+        if (hsCode.length >= 8) codesToTry.push(hsCode.slice(0, 6));
+        if (hsCode.length >= 6) codesToTry.push(hsCode.slice(0, 4));
       }
-      const iqdProduct = products.find(p => p.avg_value && p.avg_value > 0);
-      if (iqdProduct) {
-        return { avgUsd: parseFloat((iqdProduct.avg_value! / 1320).toFixed(4)), dutyRate: iqdProduct.duty_rate ?? null };
+
+      for (const code of codesToTry) {
+        const res = await fetch(`/api/hs/${encodeURIComponent(code)}?limit=50`);
+        if (!res.ok) continue;
+        const products: Product[] = await res.json();
+        if (products.length > 0) {
+          const result = extractBestValue(products);
+          if (result.avgUsd > 0) return result;
+          if (result.dutyRate !== null) return result;
+        }
       }
-      return { avgUsd: 0, dutyRate: products[0]?.duty_rate ?? null };
+
+      if (description && description.length >= 3) {
+        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(description)}&limit=10`);
+        if (searchRes.ok) {
+          const searchProducts: Product[] = await searchRes.json();
+          if (searchProducts.length > 0) {
+            const result = extractBestValue(searchProducts);
+            if (result.avgUsd > 0) return result;
+          }
+        }
+      }
+
+      return { avgUsd: 0, dutyRate: null };
     } catch {
       return { avgUsd: 0, dutyRate: null };
     }
@@ -255,7 +285,7 @@ export default function CalculatorPage() {
           Promise.all(
             newItems.map(async (item) => {
               if (!item.hs_code) return null;
-              const { avgUsd, dutyRate } = await fetchAvgValueForHsCode(item.hs_code);
+              const { avgUsd, dutyRate } = await fetchAvgValueForHsCode(item.hs_code, item.description);
               return { localId: item.localId, avgUsd, dutyRate };
             })
           ).then((results) => {
@@ -305,7 +335,7 @@ export default function CalculatorPage() {
         },
       ]);
 
-      fetchAvgValueForHsCode(hs).then(({ avgUsd, dutyRate }) => {
+      fetchAvgValueForHsCode(hs, params.get("desc") || "").then(({ avgUsd, dutyRate }) => {
         if (avgUsd > 0) {
           setItems((prev) =>
             prev.map((it) => {
