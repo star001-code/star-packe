@@ -1,174 +1,75 @@
 # Overview
 
-This is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي) — a full-stack web application for calculating customs duties and fees at Iraqi checkpoints. Users can search a product database by HS code or description, view product valuation data, and calculate duty differences. The app is built as an Arabic RTL interface with dark mode enabled by default.
+This project is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي), a full-stack web application designed to calculate customs duties and fees at Iraqi checkpoints. Its primary purpose is to allow users to search a comprehensive product database using HS codes or descriptions, view product valuation data, and accurately calculate duty differences. The application features an Arabic RTL interface with a default dark mode, catering specifically to the Iraqi customs environment.
 
-## User Preferences
+# User Preferences
 
 Preferred communication style: Simple, everyday language (Arabic).
 
-## Recent Changes
+# System Architecture
 
-- **Apr 2026**: Complete UI redesign — premium dark theme with golden/amber accent colors (hsl 38), glass-morphism cards, gradient backgrounds, backdrop blur effects
-- **Apr 2026**: Redesigned login page with centered logo, glowing card, gradient submit button, security badge
-- **Apr 2026**: Redesigned home page with hero banner, gradient stat cards, animated nav cards with hover effects
-- **Apr 2026**: Redesigned sidebar with gold gradient branding, refined dividers, user avatar with gradient background
-- **Apr 2026**: Redesigned app header with backdrop blur, gold gradient title text
-- **Apr 2026**: All page headers now have consistent gradient banner with golden icon boxes
-- **Apr 2026**: Added custom utility classes: glass-card, gradient-gold, gradient-dark, glow-gold, text-gradient-gold
-- **Apr 2026**: Refined scrollbar styling, shadows enabled in dark mode, improved border/card contrast
-- **Apr 2026**: Updated about page with refined table styling (rounded borders, header backgrounds, primary-colored values)
-- **Apr 2026**: Added theme toggle (dark/light mode) — button in header and sidebar, persists to localStorage, updates meta theme-color
-- **Apr 2026**: Created `useTheme` hook (`client/src/hooks/use-theme.ts`) with localStorage persistence
-- **Apr 2026**: ThemeContext in App.tsx provides theme state to all components
-- **Apr 2026**: Light mode has warm cream/amber palette, dark mode has deep navy with golden accents
-- **Apr 2026**: Text gradient utility adapts to light/dark modes for readability
-
-- **Feb 2026**: Built multi-page app with login, about, and product search pages
-- **Feb 2026**: Added session-based authentication (express-session + bcryptjs + connect-pg-simple)
-- **Feb 2026**: Re-extracted TSC PDF data achieving 10,488 products (from 9,434 previously)
-- **Feb 2026**: Added right-side sidebar navigation using shadcn Sidebar component
-- **Feb 2026**: Added dashboard home page with stats, navigation cards, checkpoints list
-- **Feb 2026**: HS code links navigate to calculator with product pre-filled
-- **Feb 2026**: Product detail card has "أضف للحاسبة" button
-- **Feb 2026**: Calculator shows inline TSC reference values (min/avg/max) per item
-- **Feb 2026**: Calculator results have copy summary and reset buttons
-- **Feb 2026**: TSC values converted to IQD (×1000), calculation logic compares invoice IQD vs TSC IQD
-- **Feb 2026**: Added Iraqi Customs logo to sidebar header and home page
-- **Feb 2026**: Added goods category system with 19 predefined Iraqi tariff categories (food 5%, industrial 15%, consumer 30%, luxury 40-80%, tobacco/alcohol 100-150%)
-- **Feb 2026**: Added additional taxes: sales tax (5%), municipal tax (2%) on (customs_value + duty)
-- **Feb 2026**: Added product protection rate (p) per item: duty = V × (t + p)
-- **Feb 2026**: Added "previously paid" input and "difference due" calculation (total - paid)
-- **Feb 2026**: Removed reconstruction tax (was 3% luxury only)
-- **Feb 2026**: Updated checkpoint data with 6 fee types each (SONAR, XRAY, WEIGHING, STAMP, PERMIT, DOCS)
-- **Feb 2026**: Checkpoints now re-seed on every startup to keep data fresh
-- **Feb 2026**: Added manifest upload page (`/manifest`) with AI-powered image extraction using OpenAI GPT-4o Vision
-- **Feb 2026**: Manifest page: drag-and-drop image upload, extracts HS codes/descriptions/quantities/values from customs documents
-- **Feb 2026**: Manifest extracted items can be selected and sent to calculator page via URL parameter
-- **Feb 2026**: Added paid amount input in USD (converted to IQD), Ibrahim Khalil checkpoint
-- **Feb 2026**: Manifest extraction now captures checkpoint name, duty paid, tax paid, total value from documents
-- **Feb 2026**: Manifest → Calculator auto-fills checkpoint (Arabic name mapping), paid amount, and all items
-- **Feb 2026**: Added per-item duty difference: each product shows its own duty/tax breakdown, paid amount, and difference
-- **Feb 2026**: Calculator results show per-item "فرق المنتج" (item difference) with color coding (red=underpaid, green=overpaid)
-- **Feb 2026**: Added "منفذ دهوك" checkpoint with 6 fee types (total 120,000 IQD)
-- **Feb 2026**: Copy summary includes per-item breakdowns and differences
-- **Feb 2026**: Major manifest reading upgrade: comprehensive AI prompt with Iraqi customs document structure knowledge, Arabic-Indic numeral handling, handwritten text support
-- **Feb 2026**: Manifest now extracts 10+ metadata fields: declaration number, date, importer, origin country, currency, FX rate, packages, transport method, container number
-- **Feb 2026**: Multi-image manifest upload (up to 5 pages) with thumbnail previews and per-image removal
-- **Feb 2026**: HS code auto-validation against TSC database after extraction with visual indicators
-- **Feb 2026**: Professional manifest UI with editable items table, document metadata grid, financial summary cards
-- **Feb 2026**: AI auto-classifies goods into 23 Iraqi tariff categories (food, industrial, consumer, luxury, etc.)
-- **Feb 2026**: Calculator now accepts goods_category directly from manifest extraction
-- **Feb 2026**: Added discount rate (نسبة التخفيض) — default 25%, configurable. DutyAfterDiscount = DutyBefore × (1 - discount%)
-- **Feb 2026**: New tax base formula: TaxBase = CustomsValue + DutyAfterDiscount (sales 5% + municipal 2% on this base)
-- **Feb 2026**: Separated paid inputs: "رسوم جمركية مدفوعة" + "ضرائب مدفوعة" (both in USD)
-- **Feb 2026**: Calculator results show فرق الجمرك (duty diff) and فرق الإجمالي (total diff) in both IQD and USD
-- **Feb 2026**: Removed old asycuda_discount checkbox, replaced with configurable discount rate field
-- **Feb 2026**: CIF valuation rule: if CIF < GDS_MIN → raise to reference minimum; if CIF > GDS_MAX → flag for audit; Duty = CIF × tariff rate
-- **Feb 2026**: Per-item valuation_flag (normal/raised/audit) with color-coded badges, GDS min/max display, strikethrough on raised invoice values
-- **Feb 2026**: Integrated Iraqi Customs Tariff Law No. 22/2010 — extracted 2,200 HS code duty rates from official PDF, added `duty_rate` column to products table
-- **Feb 2026**: All 10,488 products now have duty_rate populated: 8-digit HS lookup → 6-digit fallback → chapter-level default → 20% (Article 2 fallback)
-- **Feb 2026**: Calculator auto-fills duty rate from law when product is selected (no longer defaults to category rate)
-- **Feb 2026**: Duty rate field always visible per item, labeled "نسبة الرسم (قانون 22)", editable for override
-- **Feb 2026**: Search page shows duty rate column in products table and in product detail card
-- **Feb 2026**: Goods category change no longer overrides the law-based duty rate (only updates tax deposit rate)
-- **Mar 2026**: Integrated Council of Ministers duty reduction tables (جداول تقليص فئات الرسوم الكمركية) — consolidated chapter-level rates supersede Law 22 per-item rates
-- **Mar 2026**: Simplified calculator formula: (الوزن × متوسط أساس التقييم × تصنيف البضاعة) - الرسم المدفوع = الفرق
-- **Mar 2026**: 4 inputs per product: quantity, avg_value (auto-filled from DB), goods_category (determines rate), paid_duty
-- **Mar 2026**: Removed from calculator: CIF valuation, GDS min/max, discount rate, protection rate, invoice value, TSC basis selector
-- **Mar 2026**: Kept goods categories (26 categories with duty rates 5%-150%), auto-fill avg reference value from TSC database
-- **Mar 2026**: All 10,488 products updated: 4 rate tiers (5% gems, 10% food/chemicals/metals, 15% textiles/wood/vehicles, 30% alcohol/tobacco/electronics/weapons/antiques)
-- **Mar 2026**: Duty rates auto-refresh on every startup from tariff_law22_2010.json
-- **Mar 2026**: Removed checkpoint selector — calculator is now general (no specific checkpoint required)
-- **Mar 2026**: Removed from results: checkpoint fees, duty-before-discount, municipal tax (2%), tax deposit (أمانة ضريبية)
-- **Mar 2026**: All calculations now in USD; final IQD conversion shown only on totals
-- **Mar 2026**: Simplified formula: الرسم = الوزن × القيمة × نسبة الرسم%; الفرق = الرسم - المدفوع; د.ع = الفرق × 1320
-- **Mar 2026**: Removed: CIF valuation, GDS min/max comparison, discount rate, protection rate, goods categories, TSC basis selector
-- **Mar 2026**: Added supplementary product data from tariff_clean (5,632 items) and summary_products_full (5,632 items with Arabic product names)
-- **Mar 2026**: Database expanded from 10,488 to 32,240 products with 2,251 unique HS codes (was 2,060)
-- **Apr 2026**: Updated formula display to: 1320 × (المدفوع - (النسبة × متوسط التقييم × الوزن)) = الفرق
-- **Apr 2026**: Manifest → Calculator auto-fills avg_value from TSC database by HS code lookup (also for HS link navigation)
-- **Apr 2026**: Security dependency updates: multer 2.1.1, minimatch 9.0.7, path-to-regexp 8.4.0, picomatch 4.0.4, rollup 4.59.0
-
-## System Architecture
-
-### Frontend
+## Frontend
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight client-side router)
-- **State/Data Fetching**: TanStack React Query v5
+- **Routing**: Wouter
+- **State Management/Data Fetching**: TanStack React Query v5
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming, dark mode forced on
-- **Build Tool**: Vite with React plugin
-- **Language/Direction**: Arabic (RTL), set via `<html lang="ar" dir="rtl">`
-- **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+- **Styling**: Tailwind CSS with CSS variables for theming, dark mode enabled by default with a premium dark theme featuring golden/amber accent colors, glass-morphism cards, gradient backgrounds, and backdrop blur effects. A light mode with a warm cream/amber palette is also available via a theme toggle.
+- **Build Tool**: Vite
+- **Language/Direction**: Arabic (RTL)
+- **Pages**:
+    - Dashboard home page (`/`)
+    - Login/Register page (`/login`)
+    - Product search page (`/search`)
+    - Customs duty calculator (`/calculator`)
+    - About page (`/about`)
+    - Manifest upload page (`/manifest`) with AI-powered image extraction
+- **UI/UX Decisions**:
+    - Consistent premium dark theme with golden/amber accents (hsl 38).
+    - Glass-morphism cards, gradient backgrounds, and backdrop blur effects.
+    - Redesigned login, home, and about pages with enhanced visual elements (e.g., glowing cards, hero banners, animated nav cards, refined tables).
+    - Sidebar and header feature gold gradient branding and backdrop blur.
+    - Custom utility classes for consistent styling: `glass-card`, `gradient-gold`, `gradient-dark`, `glow-gold`, `text-gradient-gold`.
+    - Refined scrollbar styling and improved border/card contrast in dark mode.
+    - Theme toggle with localStorage persistence and dynamic `meta theme-color` updates.
 
-### Pages
-- `/` — Dashboard home page with stats, quick navigation cards, checkpoints list, how-it-works guide
-- `/login` — Login/Register page with username/password form (shadcn Form + Zod validation)
-- `/search` — Product browsing with paginated table (50/page), search by HS code or description, product detail card with "أضف للحاسبة" button, HS code links to calculator
-- `/calculator` — Customs duty calculator with checkpoint/FX selection, product items with inline TSC values, copy summary and reset buttons
-- `/about` — System information, database stats, calculation methodology
-- Navigation via right-side Sidebar (AppSidebar component)
-
-### Backend
+## Backend
 - **Framework**: Express 5 (TypeScript, ESM)
-- **Runtime**: Node.js via tsx in development, esbuild-bundled CJS in production
-- **Authentication**: express-session with connect-pg-simple store, bcryptjs for password hashing
-- **API Pattern**: REST endpoints under `/api/` prefix
-- **Key Endpoints**:
-  - `GET /api/health` — health check
-  - `GET /api/checkpoints` — list checkpoints with their fees
-  - `GET /api/search?q=...&limit=...` — search products by HS code or description
-  - `GET /api/hs/:hs_code` — get products by specific HS code
-  - `POST /api/calculate` — compute customs duties for items at a checkpoint
-  - `GET /api/stats` — database statistics
-  - `POST /api/auth/register` — create new user
-  - `POST /api/auth/login` — login
-  - `POST /api/auth/logout` — logout
-  - `GET /api/auth/me` — get current user session
-- **Request Validation**: Zod schemas for all request bodies
-- **Dev Server**: Vite dev server middleware served through Express (HMR via `server/vite.ts`)
+- **Runtime**: Node.js
+- **Authentication**: session-based using `express-session` with `connect-pg-simple` and `bcryptjs` for password hashing.
+- **API Pattern**: RESTful API under `/api/` prefix.
+- **Key Features**:
+    - Product search by HS code or description.
+    - Calculation of customs duties, including additional taxes (sales tax, municipal tax).
+    - AI-powered manifest image extraction (using OpenAI GPT-4o Vision) to extract HS codes, descriptions, quantities, values, and other metadata from customs documents.
+    - Auto-classification of goods into Iraqi tariff categories.
+    - Comprehensive duty calculation logic incorporating Iraqi Customs Tariff Law No. 22/2010 and Council of Ministers duty reduction tables.
+    - CIF valuation rule implementation (min/max checks).
+    - Simplified duty calculation formula based on weight, value, and duty rate.
+- **Request Validation**: Zod schemas.
 
-### Database
-- **Database**: PostgreSQL (connection via `DATABASE_URL` environment variable)
-- **ORM**: Drizzle ORM with `drizzle-zod` for schema-to-validation integration
-- **Schema** (in `shared/schema.ts`):
-  - `users` — user table (id UUID, username, password hashed)
-  - `checkpoints` — customs checkpoint locations (id, name)
-  - `checkpoint_fees` — fees associated with each checkpoint
-  - `products` — product/tariff data (HS code, CST code, description, unit, min/avg/max values)
-  - `session` — express-session table (auto-created by connect-pg-simple)
-- **Seeding**: `server/seed.ts` loads product data from `attached_assets/TSC_2025-10-13_full.json` (10,488 products)
+## Database
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM with `drizzle-zod`.
+- **Schema**: Includes tables for `users`, `checkpoints`, `checkpoint_fees`, and an expanded `products` table.
+    - `products` table contains HS code, CST code, description, unit, min/avg/max values, and `duty_rate`.
+- **Seeding**: Populated with 3,962 products from a single authoritative reference file (`products_1775625449791.json`, all USD). Duty rates are looked up from `tariff_law22_2010.json`. Checkpoint data also re-seeds on startup.
 
-### Key Files
-- `client/src/App.tsx` — Main app with SidebarProvider, routing
-- `client/src/components/app-sidebar.tsx` — Right-side navigation sidebar
-- `client/src/hooks/use-auth.ts` — Authentication hook (login/register/logout)
-- `client/src/pages/login.tsx` — Login/Register page
-- `client/src/pages/search.tsx` — Product search page
-- `client/src/pages/about.tsx` — About/Info page
-- `server/index.ts` — Express server with session middleware
-- `server/routes.ts` — All API routes including auth
-- `server/storage.ts` — Database storage interface (IStorage + DatabaseStorage)
-- `server/seed.ts` — Database seeding logic
+# External Dependencies
 
-### Build Process
-- **Development**: `npm run dev` runs tsx with the Express server + Vite middleware
-- **Production Build**: `npm run build` → builds client with Vite + bundles server with esbuild
-- **Production Start**: `npm start` runs `node dist/index.cjs`
+## NPM Packages
+- **drizzle-orm**, **drizzle-kit**: Database ORM and migration.
+- **express** v5: HTTP server framework.
+- **express-session**, **connect-pg-simple**: Session management.
+- **bcryptjs**: Password hashing.
+- **zod**: Runtime validation.
+- **@tanstack/react-query** v5: Client-side data fetching.
+- **wouter**: Client-side routing.
+- **shadcn/ui**: UI components.
+- **lucide-react**: Icons.
+- **multer**: For handling `multipart/form-data`.
+- **openai**: For AI-powered manifest image extraction.
 
-## External Dependencies
-
-### Key NPM Packages
-- **drizzle-orm** + **drizzle-kit** — Database ORM and migration tooling
-- **express** v5 — HTTP server
-- **express-session** + **connect-pg-simple** — Session management with PostgreSQL store
-- **bcryptjs** — Password hashing
-- **zod** — Runtime validation
-- **@tanstack/react-query** — Client-side data fetching/caching
-- **wouter** — Client-side routing
-- **shadcn/ui** components (Radix UI primitives + Tailwind)
-- **lucide-react** — Icons
-
-### Reference Data
-- `attached_assets/TSC_2025-10-13_full.json` — 10,488 product entries extracted from TSC PDF
-- `attached_assets/iraq_customs_extracted/` — Original Python prototype and legacy data
+## Reference Data
+- `attached_assets/products_1775625449791.json`: **Authoritative product reference** — 3,962 products, 1,560 unique HS codes, all USD. This is the single source of truth for product data.
+- `attached_assets/tariff_law22_2010.json`: Iraqi Customs Tariff Law duty rates for HS code lookups.
+- Seed process (`server/seed.ts`) loads exclusively from the reference products file — old TSC/supplementary data sources were removed.
