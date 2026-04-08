@@ -197,6 +197,26 @@ export default function CalculatorPage() {
   const prefilled = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
+  const fetchAvgValueForHsCode = async (hsCode: string): Promise<{ avgUsd: number; dutyRate: number | null }> => {
+    if (!hsCode) return { avgUsd: 0, dutyRate: null };
+    try {
+      const res = await fetch(`/api/hs/${encodeURIComponent(hsCode)}?limit=50`);
+      if (!res.ok) return { avgUsd: 0, dutyRate: null };
+      const products: Product[] = await res.json();
+      const usdProduct = products.find(p => p.currency === "USD" && p.avg_value && p.avg_value > 0);
+      if (usdProduct) {
+        return { avgUsd: usdProduct.avg_value!, dutyRate: usdProduct.duty_rate ?? null };
+      }
+      const iqdProduct = products.find(p => p.avg_value && p.avg_value > 0);
+      if (iqdProduct) {
+        return { avgUsd: parseFloat((iqdProduct.avg_value! / 1320).toFixed(4)), dutyRate: iqdProduct.duty_rate ?? null };
+      }
+      return { avgUsd: 0, dutyRate: products[0]?.duty_rate ?? null };
+    } catch {
+      return { avgUsd: 0, dutyRate: null };
+    }
+  };
+
   useEffect(() => {
     if (prefilled.current) return;
     const params = new URLSearchParams(window.location.search);
@@ -231,6 +251,35 @@ export default function CalculatorPage() {
             };
           });
           setItems(newItems);
+
+          Promise.all(
+            newItems.map(async (item) => {
+              if (!item.hs_code) return null;
+              const { avgUsd, dutyRate } = await fetchAvgValueForHsCode(item.hs_code);
+              return { localId: item.localId, avgUsd, dutyRate };
+            })
+          ).then((results) => {
+            setItems((prev) =>
+              prev.map((it) => {
+                const match = results.find((r) => r && r.localId === it.localId);
+                if (match && match.avgUsd > 0) {
+                  const updatedItem = {
+                    ...it,
+                    avg_value: match.avgUsd,
+                    tsc_avg_hint: match.avgUsd,
+                  };
+                  if (match.dutyRate !== null) {
+                    const bestCat = GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
+                      Math.abs(c.dutyRate - match.dutyRate!) < Math.abs(best.dutyRate - match.dutyRate!) ? c : best
+                    );
+                    updatedItem.category = bestCat.id;
+                  }
+                  return updatedItem;
+                }
+                return it;
+              })
+            );
+          });
         }
       } catch {}
       window.history.replaceState({}, "", "/calculator");
@@ -240,10 +289,11 @@ export default function CalculatorPage() {
     const hs = params.get("hs");
     if (hs) {
       prefilled.current = true;
+      const localId = nextId();
       setItems((prev) => [
         ...prev,
         {
-          localId: nextId(),
+          localId,
           hs_code: hs,
           description: params.get("desc") || "",
           quantity: 1,
@@ -254,6 +304,27 @@ export default function CalculatorPage() {
           tsc_avg_hint: null,
         },
       ]);
+
+      fetchAvgValueForHsCode(hs).then(({ avgUsd, dutyRate }) => {
+        if (avgUsd > 0) {
+          setItems((prev) =>
+            prev.map((it) => {
+              if (it.localId === localId) {
+                const updated = { ...it, avg_value: avgUsd, tsc_avg_hint: avgUsd };
+                if (dutyRate !== null) {
+                  const bestCat = GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
+                    Math.abs(c.dutyRate - dutyRate) < Math.abs(best.dutyRate - dutyRate) ? c : best
+                  );
+                  updated.category = bestCat.id;
+                }
+                return updated;
+              }
+              return it;
+            })
+          );
+        }
+      });
+
       window.history.replaceState({}, "", "/calculator");
     }
   }, []);
