@@ -389,7 +389,7 @@ export default function CalculatorPage() {
           حاسبة الرسوم الكمركية
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          الرسم المدفوع - (متوسط التقييم × الوزن × تصنيف البضاعة) = الفرق
+          المدفوع - (الوزن × متوسط التقييم × النسبة) = الفرق
         </p>
       </div>
 
