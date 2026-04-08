@@ -98,11 +98,21 @@ export class DatabaseStorage implements IStorage {
         .limit(limit);
       if (rows.length > 0) return rows;
     }
-    return db
+    const exactRows = await db
       .select()
       .from(products)
       .where(eq(products.hsCode, hs))
       .limit(limit);
+    if (exactRows.length > 0) return exactRows;
+
+    if (hs.length >= 4 && hs.length < 8) {
+      return db
+        .select()
+        .from(products)
+        .where(sql`${products.hsCode} LIKE ${hs + '%'}`)
+        .limit(limit);
+    }
+    return [];
   }
 
   async getStats() {
