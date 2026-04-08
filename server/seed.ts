@@ -40,7 +40,7 @@ function lookupDutyRate(hsCode: string): number | null {
 }
 
 function loadReferenceProducts(): InsertProduct[] {
-  const refPath = path.resolve("attached_assets/products_with_protection.json");
+  const refPath = path.resolve("attached_assets/products_with_decision.json");
   if (!fs.existsSync(refPath)) {
     log("Reference products file not found!", "seed");
     return [];
@@ -68,6 +68,11 @@ function loadReferenceProducts(): InsertProduct[] {
     const protLevel = String(item.protection_level || "").trim() || null;
     const protPct = toNum(item.protection_percentage);
 
+    const decision = item.decision || {};
+    const decAction = String(decision.action || "").trim() || null;
+    const decRisk = String(decision.risk || "").trim() || null;
+    const decReason = String(decision.reason || "").trim() || null;
+
     rows.push({
       hsCode: hs,
       cstCode: null,
@@ -76,6 +81,9 @@ function loadReferenceProducts(): InsertProduct[] {
       isProtected,
       protectionLevel: protLevel,
       protectionPercentage: protPct,
+      decisionAction: decAction,
+      decisionRisk: decRisk,
+      decisionReason: decReason,
       minValue: mn,
       avgValue: av,
       maxValue: mx,
@@ -101,7 +109,8 @@ export async function runSeed(): Promise<void> {
 
   const currentCount = await storage.getProductCount();
 
-  if (currentCount === refProducts.length) {
+  const sampleHasDecision = await storage.checkProductDecisionColumn();
+  if (currentCount === refProducts.length && sampleHasDecision) {
     log(`Database already has ${currentCount} products (matches reference file), skipping re-seed.`, "seed");
     return;
   }

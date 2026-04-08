@@ -36,6 +36,7 @@ import {
   Tag,
   ShieldCheck,
   ShieldOff,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,9 @@ type Product = {
   is_protected: boolean | null;
   protection_level: string | null;
   protection_percentage: number | null;
+  decision_action: string | null;
+  decision_risk: string | null;
+  decision_reason: string | null;
   min_value: number | null;
   avg_value: number | null;
   max_value: number | null;
@@ -246,6 +250,7 @@ export default function SearchPage() {
             <TableHead className="text-right">الوزن</TableHead>
             <TableHead className="text-right">سعر الوحدة</TableHead>
             <TableHead className="text-right">حماية</TableHead>
+            <TableHead className="text-right">القرار</TableHead>
             <TableHead className="text-right">الرسم %</TableHead>
             <TableHead className="text-right">أدنى</TableHead>
             <TableHead className="text-right">متوسط</TableHead>
@@ -293,6 +298,13 @@ export default function SearchPage() {
                 ) : (
                   <span className="text-muted-foreground">{product.protection_percentage != null && product.protection_percentage > 0 ? `${product.protection_percentage}%` : "0"}</span>
                 )}
+              </TableCell>
+              <TableCell className="text-sm whitespace-nowrap" data-testid={`text-decision-${product.id}`}>
+                {product.decision_action ? (
+                  <Badge variant={product.decision_risk === "عالي" ? "destructive" : product.decision_risk === "متوسط" ? "outline" : "secondary"} className="text-xs">
+                    {product.decision_action}
+                  </Badge>
+                ) : "-"}
               </TableCell>
               <TableCell className="text-sm font-mono whitespace-nowrap" data-testid={`text-duty-rate-${product.id}`}>
                 {product.duty_rate != null ? `${Math.round(product.duty_rate * 100)}%` : "-"}
@@ -454,6 +466,22 @@ export default function SearchPage() {
                   </p>
                 </div>
               </div>
+              {selectedProduct.decision_action && (
+                <div className="flex items-start gap-2 col-span-2">
+                  <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${selectedProduct.decision_risk === "عالي" ? "text-red-500" : selectedProduct.decision_risk === "متوسط" ? "text-amber-500" : "text-green-500"}`} />
+                  <div>
+                    <span className="text-xs text-muted-foreground">القرار</span>
+                    <div className="flex items-center gap-2" data-testid="text-detail-decision">
+                      <Badge variant={selectedProduct.decision_risk === "عالي" ? "destructive" : selectedProduct.decision_risk === "متوسط" ? "outline" : "secondary"} className="text-xs">
+                        {selectedProduct.decision_action}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        خطورة: {selectedProduct.decision_risk} — {selectedProduct.decision_reason}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex items-start gap-2">
                 <Coins className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div>
