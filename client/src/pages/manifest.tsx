@@ -432,17 +432,22 @@ export default function ManifestPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
-      <div>
-        <h1
-          className="text-2xl font-bold"
-          data-testid="text-manifest-title"
-        >
-          قراءة المنفست
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          ارفع صورة المنفست أو الفاتورة الكمركية وسيتم استخراج بيانات
-          المنتجات تلقائيا بالذكاء الاصطناعي
-        </p>
+      <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-card via-card to-primary/5 border border-border/50">
+        <div className="absolute top-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-gold text-white shrink-0 shadow-lg">
+            <FileImage className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="text-manifest-title">
+              <span className="text-gradient-gold">قراءة</span> المنفست
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              ارفع صورة المنفست أو الفاتورة الكمركية وسيتم استخراج بيانات
+              المنتجات تلقائياً بالذكاء الاصطناعي
+            </p>
+          </div>
+        </div>
       </div>
 
       <Card>

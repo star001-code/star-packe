@@ -35,23 +35,29 @@ export function AppSidebar() {
 
   return (
     <Sidebar side="right" collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <img
-            src={logoImg}
-            alt="الكمارك العراقية"
-            className="h-9 w-auto shrink-0 object-contain"
-            data-testid="img-logo-sidebar"
-          />
+      <SidebarHeader className="p-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 bg-primary/10 rounded-full blur-sm scale-110" />
+            <img
+              src={logoImg}
+              alt="الكمارك العراقية"
+              className="h-10 w-auto shrink-0 object-contain relative"
+              data-testid="img-logo-sidebar"
+            />
+          </div>
           <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold truncate">الحاسبة الكمركية</span>
-            <span className="text-xs text-muted-foreground truncate">فرق الرسم - العراق</span>
+            <span className="text-sm font-bold truncate text-gradient-gold">الحاسبة الكمركية</span>
+            <span className="text-[11px] text-muted-foreground truncate">فرق الرسم — العراق</span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <div className="px-4 py-1 group-data-[collapsible=icon]:hidden">
+        <div className="h-px bg-gradient-to-l from-transparent via-border to-transparent" />
+      </div>
+      <SidebarContent className="pt-2">
         <SidebarGroup>
-          <SidebarGroupLabel>القائمة</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] tracking-wider text-muted-foreground/70">القائمة</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -79,20 +85,26 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-3">
+        <div className="group-data-[collapsible=icon]:hidden">
+          <div className="h-px bg-gradient-to-l from-transparent via-border to-transparent mb-3" />
+        </div>
         {isLoggedIn ? (
-          <div className="space-y-2 group-data-[collapsible=icon]:hidden">
-            <div className="flex items-center gap-2 px-1">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted shrink-0">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="space-y-2.5 group-data-[collapsible=icon]:hidden">
+            <div className="flex items-center gap-2.5 px-1">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-gold shrink-0">
+                <User className="h-4 w-4 text-white" />
               </div>
-              <p className="text-xs text-muted-foreground truncate" data-testid="text-username">
-                {user?.username}
-              </p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate" data-testid="text-username">
+                  {user?.username}
+                </p>
+                <p className="text-[10px] text-muted-foreground">مسجل الدخول</p>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start"
+              className="w-full justify-start text-muted-foreground hover:text-destructive transition-colors"
               onClick={() => logout.mutate()}
               data-testid="button-logout"
             >

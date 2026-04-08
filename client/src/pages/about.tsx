@@ -15,19 +15,24 @@ export default function About() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" data-testid="text-about-title">
-          حول النظام
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          معلومات عن حاسبة فرق الرسم الكمركي - تحديث 2026
-        </p>
+      <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-card via-card to-primary/5 border border-border/50">
+        <div className="absolute top-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="relative">
+          <h1 className="text-2xl font-bold" data-testid="text-about-title">
+            <span className="text-gradient-gold">حول النظام</span>
+          </h1>
+          <p className="text-muted-foreground mt-1.5 text-sm">
+            معلومات عن حاسبة فرق الرسم الكمركي — تحديث 2026
+          </p>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Calculator className="h-4 w-4 text-primary" />
+            </div>
             حاسبة فرق الرسم الكمركي
           </CardTitle>
         </CardHeader>
@@ -46,8 +51,10 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Database className="h-4 w-4 text-primary" />
+            </div>
             إحصائيات قاعدة البيانات
           </CardTitle>
         </CardHeader>
@@ -59,10 +66,10 @@ export default function About() {
             </div>
           ) : stats ? (
             <div className="flex flex-wrap gap-3">
-              <Badge variant="secondary" data-testid="badge-total-products">
+              <Badge variant="secondary" className="px-3 py-1.5" data-testid="badge-total-products">
                 إجمالي المنتجات: {stats.rows_total.toLocaleString("ar-SA")}
               </Badge>
-              <Badge variant="secondary" data-testid="badge-unique-hs">
+              <Badge variant="secondary" className="px-3 py-1.5" data-testid="badge-unique-hs">
                 رموز HS فريدة: {stats.hs_unique.toLocaleString("ar-SA")}
               </Badge>
             </div>
@@ -72,8 +79,10 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
             طريقة الحساب
           </CardTitle>
         </CardHeader>
@@ -92,24 +101,26 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <BookOpen className="h-4 w-4 text-primary" />
+            </div>
             الإطار القانوني
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
-          <ul className="space-y-2 pr-2">
-            <li className="flex items-start gap-2">
-              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-              <span><strong>قرار مجلس الوزراء 957/2025</strong> - تعديل نسب الرسوم الكمركية، نافذ اعتباراً من يناير 2026</span>
+          <ul className="space-y-3 pr-2">
+            <li className="flex items-start gap-2.5">
+              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-primary/60" />
+              <span><strong>قرار مجلس الوزراء 957/2025</strong> — تعديل نسب الرسوم الكمركية، نافذ اعتباراً من يناير 2026</span>
             </li>
-            <li className="flex items-start gap-2">
-              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-              <span><strong>قانون التعرفة الكمركية رقم 22 لسنة 2010</strong> - القانون الأساسي للتعرفة الكمركية العراقية</span>
+            <li className="flex items-start gap-2.5">
+              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-primary/60" />
+              <span><strong>قانون التعرفة الكمركية رقم 22 لسنة 2010</strong> — القانون الأساسي للتعرفة الكمركية العراقية</span>
             </li>
-            <li className="flex items-start gap-2">
-              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-              <span><strong>قانون حماية المنتجات الوطنية رقم 11 لسنة 2010</strong> - فرض رسوم حماية إضافية على المنتجات المنافسة للإنتاج المحلي</span>
+            <li className="flex items-start gap-2.5">
+              <Scale className="h-4 w-4 shrink-0 mt-0.5 text-primary/60" />
+              <span><strong>قانون حماية المنتجات الوطنية رقم 11 لسنة 2010</strong> — فرض رسوم حماية إضافية على المنتجات المنافسة للإنتاج المحلي</span>
             </li>
           </ul>
         </CardContent>
@@ -117,37 +128,39 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-4 w-4 text-primary" />
+            </div>
             حماية المنتج الوطني
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
           <p>يتم فرض رسوم حماية إضافية على بعض المنتجات المنافسة للإنتاج المحلي العراقي:</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+          <div className="overflow-x-auto rounded-lg border border-border/50">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-right py-2 pr-2">المنتج</th>
-                  <th className="text-right py-2">رمز HS</th>
-                  <th className="text-right py-2">نسبة الحماية</th>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-right py-2.5 px-3">المنتج</th>
+                  <th className="text-right py-2.5 px-3">رمز HS</th>
+                  <th className="text-right py-2.5 px-3">نسبة الحماية</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">حديد تسليح (10-32 ملم)</td>
-                  <td className="py-2 font-mono">72142</td>
-                  <td className="py-2">+30%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">حديد تسليح (10-32 ملم)</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">72142</td>
+                  <td className="py-2.5 px-3">+30%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">حاويات بلاستيك</td>
-                  <td className="py-2 font-mono">3924</td>
-                  <td className="py-2">+60%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">حاويات بلاستيك</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">3924</td>
+                  <td className="py-2.5 px-3">+60%</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-2">أنابيب بلاستيك</td>
-                  <td className="py-2 font-mono">3917</td>
-                  <td className="py-2">+60%</td>
+                  <td className="py-2.5 px-3">أنابيب بلاستيك</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">3917</td>
+                  <td className="py-2.5 px-3">+60%</td>
                 </tr>
               </tbody>
             </table>
@@ -160,33 +173,35 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Percent className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Percent className="h-4 w-4 text-primary" />
+            </div>
             الأمانة الضريبية (Tax Deposit)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
           <p>تُحتسب الأمانة الضريبية كنسبة من القيمة الكمركية حسب تصنيف البضاعة:</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+          <div className="overflow-x-auto rounded-lg border border-border/50">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-right py-2 pr-2">النسبة</th>
-                  <th className="text-right py-2">التصنيفات</th>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-right py-2.5 px-3">النسبة</th>
+                  <th className="text-right py-2.5 px-3">التصنيفات</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="py-2 pr-2 font-mono">1%</td>
-                  <td className="py-2">مواد غذائية أساسية، أدوية، مدخلات زراعية، مواد تعليمية، معدات طاقة شمسية</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3 font-mono text-primary">1%</td>
+                  <td className="py-2.5 px-3">مواد غذائية أساسية، أدوية، مدخلات زراعية، مواد تعليمية، معدات طاقة شمسية</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2 font-mono">2%</td>
-                  <td className="py-2">مجوهرات وذهب، مكائن ومعدات إنتاجية</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3 font-mono text-primary">2%</td>
+                  <td className="py-2.5 px-3">مجوهرات وذهب، مكائن ومعدات إنتاجية</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-2 font-mono">3%</td>
-                  <td className="py-2">باقي التصنيفات (مواد غذائية مصنعة، مواد خام، إلكترونيات، ملابس، مركبات، سلع كمالية، تبغ، كحول، إلخ)</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">3%</td>
+                  <td className="py-2.5 px-3">باقي التصنيفات (مواد غذائية مصنعة، مواد خام، إلكترونيات، ملابس، مركبات، سلع كمالية، تبغ، كحول، إلخ)</td>
                 </tr>
               </tbody>
             </table>
@@ -196,61 +211,63 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Scale className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Scale className="h-4 w-4 text-primary" />
+            </div>
             جدول التعرفة 2026
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
           <p>نسب الرسوم الكمركية وفق قرار 957/2025:</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+          <div className="overflow-x-auto rounded-lg border border-border/50">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-right py-2 pr-2">التصنيف</th>
-                  <th className="text-right py-2">النسبة</th>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-right py-2.5 px-3">التصنيف</th>
+                  <th className="text-right py-2.5 px-3">النسبة</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">مواد غذائية أساسية / أدوية / مدخلات زراعية / تعليمية / طاقة شمسية / حواسيب / مجوهرات</td>
-                  <td className="py-2 font-mono">5%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">مواد غذائية أساسية / أدوية / مدخلات زراعية / تعليمية / طاقة شمسية / حواسيب / مجوهرات</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">5%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">مواد خام / مكائن ومعدات إنتاجية</td>
-                  <td className="py-2 font-mono">10%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">مواد خام / مكائن ومعدات إنتاجية</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">10%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">مدخلات صناعية / مواد بناء / كهربائيات / مركبات (موحد)</td>
-                  <td className="py-2 font-mono">15%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">مدخلات صناعية / مواد بناء / كهربائيات / مركبات (موحد)</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">15%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">إلكترونيات استهلاكية / هواتف ذكية / ملابس</td>
-                  <td className="py-2 font-mono">20%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">إلكترونيات استهلاكية / هواتف ذكية / ملابس</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">20%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">أدوات منزلية</td>
-                  <td className="py-2 font-mono">25%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">أدوات منزلية</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">25%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">سلع استهلاكية عامة / بلاستيك محمي / حديد تسليح محمي</td>
-                  <td className="py-2 font-mono">30%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">سلع استهلاكية عامة / بلاستيك محمي / حديد تسليح محمي</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">30%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">سلع كمالية</td>
-                  <td className="py-2 font-mono">40%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">سلع كمالية</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">40%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">منتجات تنظيف</td>
-                  <td className="py-2 font-mono">65%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">منتجات تنظيف</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">65%</td>
                 </tr>
-                <tr className="border-b">
-                  <td className="py-2 pr-2">تبغ وسكائر</td>
-                  <td className="py-2 font-mono">100%</td>
+                <tr className="border-b border-border/30">
+                  <td className="py-2.5 px-3">تبغ وسكائر</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">100%</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-2">مشروبات كحولية</td>
-                  <td className="py-2 font-mono">150%</td>
+                  <td className="py-2.5 px-3">مشروبات كحولية</td>
+                  <td className="py-2.5 px-3 font-mono text-primary">150%</td>
                 </tr>
               </tbody>
             </table>
@@ -260,8 +277,10 @@ export default function About() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Calculator className="h-4 w-4 text-primary" />
+            </div>
             تخفيض أسيكودا 25%
           </CardTitle>
         </CardHeader>
@@ -274,10 +293,12 @@ export default function About() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
+              <Shield className="h-4 w-4 text-destructive" />
+            </div>
             إخلاء المسؤولية
           </CardTitle>
         </CardHeader>
