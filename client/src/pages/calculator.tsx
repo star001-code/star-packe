@@ -538,10 +538,10 @@ export default function CalculatorPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" data-testid="text-calc-title">
-              <span className="text-gradient-gold">حاسبة</span> الرسوم الكمركية
+              <span className="text-gradient-gold">معلومات</span> منتج و رمز HS
             </h1>
-            <p className="text-muted-foreground mt-1 text-sm font-mono">
-              1320 × (المدفوع - (النسبة × متوسط التقييم × الوزن)) = الفرق
+            <p className="text-muted-foreground mt-1 text-sm">
+              أدخل بيانات المنتج ورمز التعريفة الكمركية لحساب الرسوم
             </p>
           </div>
         </div>
