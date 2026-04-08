@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, real, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, real, integer, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -44,6 +44,9 @@ export const products = pgTable("products", {
   cstCode: text("cst_code"),
   description: text("description"),
   unit: text("unit"),
+  weight: real("weight"),
+  unitPrice: real("unit_price"),
+  isProtected: boolean("is_protected").default(false),
   minValue: real("min_value"),
   avgValue: real("avg_value"),
   maxValue: real("max_value"),
