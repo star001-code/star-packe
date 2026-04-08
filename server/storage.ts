@@ -27,6 +27,7 @@ export interface IStorage {
   seedProducts(rows: InsertProduct[]): Promise<number>;
   clearProducts(): Promise<void>;
   getProductCount(): Promise<number>;
+  checkProductDecisionColumn(): Promise<boolean>;
   updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number>;
 }
 
@@ -234,6 +235,11 @@ export class DatabaseStorage implements IStorage {
   async getProductCount(): Promise<number> {
     const [row] = await db.select({ c: count() }).from(products);
     return row.c;
+  }
+
+  async checkProductDecisionColumn(): Promise<boolean> {
+    const [row] = await db.select({ action: products.decisionAction }).from(products).limit(1);
+    return row?.action != null;
   }
 
   async updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number> {
