@@ -56,6 +56,22 @@ const GOODS_CATEGORIES = [
   { id: "custom", label: "نسبة مخصصة", dutyRate: 0 },
 ];
 
+const PROTECTION_RULES: { hsPrefix: string; rate: number; label: string }[] = [
+  { hsPrefix: "72142", rate: 0.30, label: "حديد تسليح - حماية منتج وطني" },
+  { hsPrefix: "3924", rate: 0.60, label: "حاويات بلاستيك - حماية منتج وطني" },
+  { hsPrefix: "3917", rate: 0.60, label: "أنابيب بلاستيك - حماية منتج وطني" },
+];
+
+function getProtectionRate(hsCode: string): number {
+  const normalized = hsCode.replace(/[^\d]/g, "");
+  for (const rule of PROTECTION_RULES) {
+    if (normalized.startsWith(rule.hsPrefix)) {
+      return rule.rate;
+    }
+  }
+  return 0;
+}
+
 type Product = {
   id: number;
   hs_code: string;
@@ -79,6 +95,7 @@ type CalcItem = {
   category: string;
   paid_duty: number;
   tsc_avg_hint: number | null;
+  protection_rate: number;
 };
 
 type CalcResult = {
@@ -278,6 +295,7 @@ export default function CalculatorPage() {
               category: matchedCatId,
               paid_duty: Number(p.duty_amount) || 0,
               tsc_avg_hint: null,
+              protection_rate: getProtectionRate(String(p.hs_code || "")),
             };
           });
           setItems(newItems);
@@ -332,6 +350,7 @@ export default function CalculatorPage() {
           category: "consumer",
           paid_duty: 0,
           tsc_avg_hint: null,
+          protection_rate: getProtectionRate(hs),
         },
       ]);
 
@@ -391,10 +410,13 @@ export default function CalculatorPage() {
       avgUsd = product.currency === "USD" ? product.avg_value : product.avg_value / 1320;
     }
 
+    const protRate = getProtectionRate(product.hs_code);
+    const localId = nextId();
+
     setItems((prev) => [
       ...prev,
       {
-        localId: nextId(),
+        localId,
         hs_code: product.hs_code,
         description: product.description || "",
         quantity: 1,
@@ -403,9 +425,32 @@ export default function CalculatorPage() {
         category: matchedCat.id,
         paid_duty: 0,
         tsc_avg_hint: avgUsd > 0 ? parseFloat(avgUsd.toFixed(4)) : null,
+        protection_rate: protRate,
       },
     ]);
     setResult(null);
+
+    if (avgUsd === 0 && product.hs_code) {
+      fetchAvgValueForHsCode(product.hs_code, product.description || "").then(({ avgUsd: fetchedAvg, dutyRate }) => {
+        if (fetchedAvg > 0) {
+          setItems((prev) =>
+            prev.map((it) => {
+              if (it.localId === localId) {
+                const updated = { ...it, avg_value: fetchedAvg, tsc_avg_hint: fetchedAvg };
+                if (dutyRate !== null) {
+                  const bestCat = GOODS_CATEGORIES.filter(c => c.id !== "custom").reduce((best, c) =>
+                    Math.abs(c.dutyRate - dutyRate) < Math.abs(best.dutyRate - dutyRate) ? c : best
+                  );
+                  updated.category = bestCat.id;
+                }
+                return updated;
+              }
+              return it;
+            })
+          );
+        }
+      });
+    }
   };
 
   const updateItem = (localId: string, field: keyof CalcItem, value: string | number) => {
@@ -576,7 +621,7 @@ export default function CalculatorPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">الوزن / الكمية</Label>
                   <Input
@@ -632,6 +677,24 @@ export default function CalculatorPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    حماية المنتج (%)
+                    {item.protection_rate > 0 && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 text-amber-500 border-amber-500/30">محمي</Badge>
+                    )}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={parseFloat((item.protection_rate * 100).toFixed(0))}
+                    onChange={(e) => updateItem(item.localId, "protection_rate", (parseFloat(e.target.value) || 0) / 100)}
+                    data-testid={`input-protection-${idx}`}
+                  />
                 </div>
 
                 <div className="space-y-1">
