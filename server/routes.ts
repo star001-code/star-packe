@@ -570,7 +570,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
       }));
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.1",
         messages: [
           {
             role: "system",
@@ -622,7 +622,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
       const mimeType = file.mimetype;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.1",
         messages: [
           {
             role: "system",
