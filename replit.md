@@ -1,6 +1,6 @@
 # Overview
 
-This project is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي), a full-stack web application designed to calculate customs duties and fees at Iraqi checkpoints. Its primary purpose is to allow users to search a comprehensive product database using HS codes or descriptions, view product valuation data, and accurately calculate duty differences. The application features an Arabic RTL interface with a default dark mode, catering specifically to the Iraqi customs environment.
+This project is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي), a full-stack web application designed to calculate customs duties and fees at Iraqi checkpoints. Its primary purpose is to allow users to search a comprehensive product database using HS codes or descriptions, view product valuation data, and accurately calculate duty differences. The application features an Arabic RTL interface with a default dark mode, catering specifically to the Iraqi customs environment. The product database contains 13,266 products covering 96 HS chapters (out of 97) with 2,529 unique HS codes. The AI manifest extraction uses the `gpt-5.1` model via Replit AI Integrations with `max_completion_tokens` parameter.
 
 # User Preferences
 
