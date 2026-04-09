@@ -587,7 +587,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
             ],
           },
         ],
-        max_tokens: 8192,
+        max_completion_tokens: 8192,
         temperature: 0.1,
       });
 
@@ -604,10 +604,11 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
 
       res.json(normalizeManifestResponse(parsed));
     } catch (e: any) {
-      console.error("Multi-image manifest extraction error:", e);
+      console.error("Multi-image manifest extraction error:", e?.status, e?.message, e?.error);
+      const msg = e?.message || e?.error?.message || "Failed to extract manifest data";
       res
         .status(500)
-        .json({ error: e.message || "Failed to extract manifest data" });
+        .json({ error: msg });
     }
   });
 
@@ -645,7 +646,7 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
             ],
           },
         ],
-        max_tokens: 8192,
+        max_completion_tokens: 8192,
         temperature: 0.1,
       });
 
@@ -662,10 +663,11 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
 
       res.json(normalizeManifestResponse(parsed));
     } catch (e: any) {
-      console.error("Manifest extraction error:", e);
+      console.error("Manifest extraction error:", e?.status, e?.message, e?.error);
+      const msg = e?.message || e?.error?.message || "Failed to extract manifest data";
       res
         .status(500)
-        .json({ error: e.message || "Failed to extract manifest data" });
+        .json({ error: msg });
     }
   });
 
