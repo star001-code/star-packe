@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, pool } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -703,6 +703,146 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
       }
 
       res.json({ results });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  const tariffTableSchema = z.object({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(250).default(10),
+    hsSearchTerm: z.string().optional().default(""),
+    descriptionSearchTerm: z.string().optional().default(""),
+    sortColumn: z.string().nullable().optional().default(null),
+    sortDirection: z.enum(["asc", "desc"]).optional().default("asc"),
+    columnFilters: z.record(z.string(), z.array(z.string())).optional().default({}),
+  });
+
+  const TARIFF_COLUMNS = ["hsCode", "description", "unit", "dutyRate", "avgValue"] as const;
+  type TariffCol = typeof TARIFF_COLUMNS[number];
+
+  function getTariffColumnField(col: string): TariffCol | null {
+    const idx = parseInt(col);
+    if (!isNaN(idx) && idx >= 0 && idx < TARIFF_COLUMNS.length) return TARIFF_COLUMNS[idx];
+    if (TARIFF_COLUMNS.includes(col as TariffCol)) return col as TariffCol;
+    return null;
+  }
+
+  app.post("/api/tariff/table", async (req, res) => {
+    try {
+      const params = tariffTableSchema.parse(req.body);
+      const conditions: string[] = [];
+      const values: any[] = [];
+      let paramIdx = 1;
+
+      if (params.hsSearchTerm) {
+        conditions.push(`hs_code LIKE $${paramIdx}`);
+        values.push(params.hsSearchTerm.replace(/[^\d]/g, "") + "%");
+        paramIdx++;
+      }
+
+      if (params.descriptionSearchTerm) {
+        conditions.push(`description ILIKE $${paramIdx}`);
+        values.push("%" + params.descriptionSearchTerm + "%");
+        paramIdx++;
+      }
+
+      if (params.columnFilters) {
+        for (const [colIdx, filterValues] of Object.entries(params.columnFilters)) {
+          if (!filterValues || filterValues.length === 0) continue;
+          const field = getTariffColumnField(colIdx);
+          if (!field) continue;
+          const dbCol = field === "hsCode" ? "hs_code" : field === "dutyRate" ? "duty_rate" : field === "avgValue" ? "avg_value" : field;
+
+          if (field === "dutyRate") {
+            const numericVals = filterValues.map(v => {
+              const n = parseFloat(v.replace("%", ""));
+              return isNaN(n) ? null : n / 100;
+            }).filter(v => v !== null);
+            if (numericVals.length > 0) {
+              const placeholders = numericVals.map(() => `$${paramIdx++}`);
+              conditions.push(`${dbCol} IN (${placeholders.join(",")})`);
+              values.push(...numericVals);
+            }
+          } else {
+            const placeholders = filterValues.map(() => `$${paramIdx++}`);
+            conditions.push(`COALESCE(CAST(${dbCol} AS TEXT), '') IN (${placeholders.join(",")})`);
+            values.push(...filterValues);
+          }
+        }
+      }
+
+      const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
+
+      const countQuery = `SELECT COUNT(*) as total FROM products ${whereClause}`;
+      const countResult = await pool.query(countQuery, values);
+      const totalFiltered = parseInt(countResult.rows[0].total);
+
+      const totalCountResult = await pool.query("SELECT COUNT(*) as total FROM products");
+      const totalRecords = parseInt(totalCountResult.rows[0].total);
+
+      let orderClause = "ORDER BY hs_code ASC";
+      if (params.sortColumn !== null && params.sortColumn !== undefined) {
+        const field = getTariffColumnField(params.sortColumn);
+        if (field) {
+          const dbCol = field === "hsCode" ? "hs_code" : field === "dutyRate" ? "duty_rate" : field === "avgValue" ? "avg_value" : field;
+          orderClause = `ORDER BY ${dbCol} ${params.sortDirection === "desc" ? "DESC" : "ASC"} NULLS LAST`;
+        }
+      }
+
+      const totalPages = Math.ceil(totalFiltered / params.pageSize);
+      const offset = (params.page - 1) * params.pageSize;
+
+      const dataQuery = `SELECT hs_code, description, unit, duty_rate, avg_value FROM products ${whereClause} ${orderClause} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+      values.push(params.pageSize, offset);
+
+      const dataResult = await pool.query(dataQuery, values);
+
+      const data = dataResult.rows.map((row: any) => [
+        row.hs_code || "",
+        row.description || "",
+        row.unit || "",
+        row.duty_rate != null ? `${(row.duty_rate * 100).toFixed(0)}%` : "",
+        row.avg_value != null ? Number(row.avg_value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "",
+      ]);
+
+      res.json({
+        success: true,
+        data,
+        filteredRecords: totalFiltered,
+        totalRecords,
+        totalPages,
+        page: params.page,
+        pageSize: params.pageSize,
+      });
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ success: false, error: "Invalid request", details: e.errors });
+      }
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get("/api/tariff/column-values/:columnIndex", async (_req, res) => {
+    try {
+      const colIdx = _req.params.columnIndex;
+      const field = getTariffColumnField(colIdx);
+      if (!field) {
+        return res.status(400).json({ error: "Invalid column index" });
+      }
+      const dbCol = field === "hsCode" ? "hs_code" : field === "dutyRate" ? "duty_rate" : field === "avgValue" ? "avg_value" : field;
+
+      let query: string;
+      if (field === "dutyRate") {
+        query = `SELECT DISTINCT COALESCE(CAST(ROUND(${dbCol}::numeric * 100) AS TEXT) || '%', '') as val FROM products WHERE ${dbCol} IS NOT NULL ORDER BY val LIMIT 500`;
+      } else if (field === "avgValue") {
+        query = `SELECT DISTINCT COALESCE(CAST(${dbCol} AS TEXT), '') as val FROM products WHERE ${dbCol} IS NOT NULL ORDER BY val LIMIT 500`;
+      } else {
+        query = `SELECT DISTINCT COALESCE(${dbCol}, '') as val FROM products ORDER BY val LIMIT 500`;
+      }
+
+      const result = await pool.query(query);
+      res.json({ values: result.rows.map((r: any) => r.val) });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

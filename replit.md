@@ -23,6 +23,7 @@ Preferred communication style: Simple, everyday language (Arabic).
     - Customs duty calculator (`/calculator`)
     - About page (`/about`)
     - Manifest upload page (`/manifest`) with AI-powered image extraction
+    - Customs Tariff data table page (`/tariff`) with advanced server-side sorting, column filtering, HS code search, description search, and pagination
 - **UI/UX Decisions**:
     - Consistent premium dark theme with golden/amber accents (hsl 38).
     - Glass-morphism cards, gradient backgrounds, and backdrop blur effects.

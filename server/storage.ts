@@ -31,7 +31,7 @@ export interface IStorage {
   updateAllDutyRates(lookupFn: (hsCode: string) => number | null): Promise<number>;
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool);
 
 export class DatabaseStorage implements IStorage {
