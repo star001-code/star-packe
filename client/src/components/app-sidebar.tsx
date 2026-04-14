@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage, Sun, Moon } from "lucide-react";
+import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage, Sun, Moon, Table } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeContext } from "@/App";
@@ -23,6 +23,7 @@ const menuItems = [
   { title: "المنتجات", url: "/search", icon: Package },
   { title: "الحاسبة", url: "/calculator", icon: Calculator },
   { title: "قراءة المنفست", url: "/manifest", icon: FileImage },
+  { title: "التعرفة الجمركية", url: "/tariff", icon: Table },
   { title: "حول النظام", url: "/about", icon: Info },
 ];
 

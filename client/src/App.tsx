@@ -16,6 +16,7 @@ import About from "./pages/about";
 import SearchPage from "./pages/search";
 import CalculatorPage from "./pages/calculator";
 import ManifestPage from "./pages/manifest";
+import TariffPage from "./pages/tariff";
 import NotFound from "./pages/not-found";
 
 export const ThemeContext = createContext<{
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/search" component={SearchPage} />
       <Route path="/calculator" component={CalculatorPage} />
       <Route path="/manifest" component={ManifestPage} />
+      <Route path="/tariff" component={TariffPage} />
       <Route component={NotFound} />
     </Switch>
   );
