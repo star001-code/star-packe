@@ -1,1 +1,0 @@
-export default function ArchivePage() { return <div className="p-10 text-center">أرشيف الوثائق</div>; }
