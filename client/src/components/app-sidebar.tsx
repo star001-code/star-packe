@@ -15,6 +15,7 @@ import {
 import { Home, Package, Info, LogIn, LogOut, Calculator, User, FileImage, Sun, Moon, Table } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ThemeContext } from "@/App";
 import logoImg from "@assets/IMG_2293_1770690757765.png";
 
@@ -27,7 +28,7 @@ const menuItems = [
   { title: "حول النظام", url: "/about", icon: Info },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ className }: { className?: string }) {
   const [location, navigate] = useLocation();
   const { user, isLoggedIn, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useContext(ThemeContext);
@@ -38,7 +39,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar side="right" collapsible="icon">
+    <Sidebar side="right" collapsible="icon" className={cn(className)}>
       <SidebarHeader className="p-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
