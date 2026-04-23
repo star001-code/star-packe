@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60,
+      "includeFiles": [
+        "public/**",
+        "attached_assets/products_with_decision.json",
+        "attached_assets/tariff_law22_2010.json"
+      ]
+    }
+  }
+}

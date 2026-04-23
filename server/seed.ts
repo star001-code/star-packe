@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
 import type { InsertProduct } from "@shared/schema";
-import { log } from "./index";
+import { log } from "./app";
 
 function normHs(v: any): string {
   return String(v || "").replace(/[^\d]/g, "").trim();
