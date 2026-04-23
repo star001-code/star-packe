@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response } from "express";
 import { chatStorage } from "../chat/storage";
-import { openai, speechToText, ensureCompatibleFormat } from "./client";
+import { getOpenAI, speechToText, ensureCompatibleFormat } from "./client";
 
 // Body parser with 50MB limit for audio payloads
 const audioBodyParser = express.json({ limit: "50mb" });
@@ -69,31 +69,25 @@ export function registerAudioRoutes(app: Express): void {
         return res.status(400).json({ error: "Audio data (base64) is required" });
       }
 
-      // 1. Auto-detect format and convert to OpenAI-compatible format
       const rawBuffer = Buffer.from(audio, "base64");
       const { buffer: audioBuffer, format: inputFormat } = await ensureCompatibleFormat(rawBuffer);
-
-      // 2. Transcribe user audio
       const userTranscript = await speechToText(audioBuffer, inputFormat);
 
-      // 3. Save user message
       await chatStorage.createMessage(conversationId, "user", userTranscript);
 
-      // 4. Get conversation history
       const existingMessages = await chatStorage.getMessagesByConversation(conversationId);
       const chatHistory = existingMessages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
 
-      // 5. Set up SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
       res.write(`data: ${JSON.stringify({ type: "user_transcript", data: userTranscript })}\n\n`);
 
-      // 6. Stream audio response from gpt-audio
+      const openai = getOpenAI();
       const stream = await openai.chat.completions.create({
         model: "gpt-audio",
         modalities: ["text", "audio"],
@@ -118,18 +112,19 @@ export function registerAudioRoutes(app: Express): void {
         }
       }
 
-      // 7. Save assistant message
       await chatStorage.createMessage(conversationId, "assistant", assistantTranscript);
 
       res.write(`data: ${JSON.stringify({ type: "done", transcript: assistantTranscript })}\n\n`);
       res.end();
     } catch (error) {
       console.error("Error processing voice message:", error);
+      const message = error instanceof Error ? error.message : "Failed to process voice message";
       if (res.headersSent) {
-        res.write(`data: ${JSON.stringify({ type: "error", error: "Failed to process voice message" })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`);
         res.end();
       } else {
-        res.status(500).json({ error: "Failed to process voice message" });
+        const status = /Missing OpenAI API key/.test(message) ? 503 : 500;
+        res.status(status).json({ error: message });
       }
     }
   });

@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { Pool } from "pg";
+import { hasDatabase } from "./storage";
 
 declare module "express-session" {
   interface SessionData {
@@ -32,23 +33,25 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-const PgSession = ConnectPgSimple(session);
-const sessionPool = new Pool({ connectionString: process.env.DATABASE_URL });
+const sessionConfig: session.SessionOptions = {
+  secret: process.env.SESSION_SECRET || "fallback-dev-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  },
+};
 
-app.use(
-  session({
-    store: new PgSession({ pool: sessionPool, createTableIfMissing: true }),
-    secret: process.env.SESSION_SECRET || "fallback-dev-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-    },
-  }),
-);
+if (hasDatabase) {
+  const PgSession = ConnectPgSimple(session);
+  const sessionPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  sessionConfig.store = new PgSession({ pool: sessionPool, createTableIfMissing: true });
+}
+
+app.use(session(sessionConfig));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

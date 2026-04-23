@@ -2,9 +2,23 @@ import fs from "node:fs";
 import OpenAI, { toFile } from "openai";
 import { Buffer } from "node:buffer";
 
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+export function getOpenAI(): OpenAI {
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OpenAI API key. Set AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY.");
+  }
+
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+}
+
+// Preserve the existing import shape while avoiding eager client construction at startup.
+export const openai = new Proxy({} as OpenAI, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getOpenAI(), prop, receiver);
+  },
 });
 
 /**
@@ -15,6 +29,7 @@ export async function generateImageBuffer(
   prompt: string,
   size: "1024x1024" | "512x512" | "256x256" = "1024x1024"
 ): Promise<Buffer> {
+  const openai = getOpenAI();
   const response = await openai.images.generate({
     model: "gpt-image-1",
     prompt,
@@ -33,6 +48,7 @@ export async function editImages(
   prompt: string,
   outputPath?: string
 ): Promise<Buffer> {
+  const openai = getOpenAI();
   const images = await Promise.all(
     imageFiles.map((file) =>
       toFile(fs.createReadStream(file), file, {
@@ -56,4 +72,3 @@ export async function editImages(
 
   return imageBytes;
 }
-

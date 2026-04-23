@@ -1,6 +1,6 @@
 # Overview
 
-This project is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي), a full-stack web application designed to calculate customs duties and fees at Iraqi checkpoints. Its primary purpose is to allow users to search a comprehensive product database using HS codes or descriptions, view product valuation data, and accurately calculate duty differences. The application features an Arabic RTL interface with a default dark mode, catering specifically to the Iraqi customs environment. The product database contains 12,601 products with 1,915 unique HS codes (seeded from ALL_PRODUCTS_WITH_DECISION_CLEAN.json). The AI manifest extraction uses the `gpt-5.1` model via Replit AI Integrations with `max_completion_tokens` parameter.
+This project is an **Iraqi Customs Duty Difference Calculator** (حاسبة فرق الرسم الكمركي), a full-stack web application designed to calculate customs duties and fees at Iraqi checkpoints. Its primary purpose is to allow users to search a comprehensive product database using HS codes or descriptions, view product valuation data, and accurately calculate duty differences. The application features an Arabic RTL interface with a default dark mode, catering specifically to the Iraqi customs environment. The product database contains 16,323 products covering 96 HS chapters (out of 97) with 4,689 unique HS codes, seeded from `products_with_decision.json`. The AI manifest extraction uses the `gpt-5.1` model via Replit AI Integrations with `max_completion_tokens` parameter.
 
 # User Preferences
 
@@ -71,6 +71,6 @@ Preferred communication style: Simple, everyday language (Arabic).
 - **openai**: For AI-powered manifest image extraction.
 
 ## Reference Data
-- `attached_assets/products_with_decision.json`: **Authoritative product reference** — 12,601 products with protection + decision data. This is the single source of truth for product data.
+- `attached_assets/products_with_decision.json`: **Authoritative product reference** — 16,323 products with protection + decision data. This is the single source of truth for product data.
 - `attached_assets/tariff_law22_2010.json`: Iraqi Customs Tariff Law duty rates for HS code lookups.
 - Seed process (`server/seed.ts`) loads exclusively from the reference products file.

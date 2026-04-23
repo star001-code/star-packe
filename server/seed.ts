@@ -40,7 +40,7 @@ function lookupDutyRate(hsCode: string): number | null {
 }
 
 function loadReferenceProducts(): InsertProduct[] {
-  const refPath = path.resolve("attached_assets/ALL_PRODUCTS_WITH_DECISION_CLEAN.json");
+  const refPath = path.resolve("attached_assets/products_with_decision.json");
   if (!fs.existsSync(refPath)) {
     log("Reference products file not found!", "seed");
     return [];

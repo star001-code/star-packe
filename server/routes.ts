@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage, pool } from "./storage";
+import { storage, pool, hasDatabase } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import multer from "multer";
@@ -731,6 +731,83 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
   app.post("/api/tariff/table", async (req, res) => {
     try {
       const params = tariffTableSchema.parse(req.body);
+      if (!hasDatabase || !pool) {
+        const allRows = await storage.getProducts(0, Number.MAX_SAFE_INTEGER);
+        let filtered = allRows;
+
+        if (params.hsSearchTerm) {
+          const hsPrefix = params.hsSearchTerm.replace(/[^\d]/g, "");
+          filtered = filtered.filter((row) => row.hsCode.startsWith(hsPrefix));
+        }
+
+        if (params.descriptionSearchTerm) {
+          const q = params.descriptionSearchTerm.toLowerCase();
+          filtered = filtered.filter((row) => (row.description || "").toLowerCase().includes(q));
+        }
+
+        if (params.columnFilters) {
+          for (const [colIdx, filterValues] of Object.entries(params.columnFilters)) {
+            if (!filterValues || filterValues.length === 0) continue;
+            const field = getTariffColumnField(colIdx);
+            if (!field) continue;
+
+            filtered = filtered.filter((row) => {
+              if (field === "hsCode") return filterValues.includes(row.hsCode || "");
+              if (field === "description") return filterValues.includes(row.description || "");
+              if (field === "unit") return filterValues.includes(row.unit || "");
+              if (field === "dutyRate") {
+                const val = row.dutyRate != null ? `${Math.round(row.dutyRate * 100)}%` : "";
+                return filterValues.includes(val);
+              }
+              if (field === "avgValue") {
+                const val = row.avgValue != null ? String(row.avgValue) : "";
+                return filterValues.includes(val);
+              }
+              return true;
+            });
+          }
+        }
+
+        const sortField = params.sortColumn != null ? getTariffColumnField(params.sortColumn) : null;
+        if (sortField) {
+          const dir = params.sortDirection === "desc" ? -1 : 1;
+          filtered = [...filtered].sort((a, b) => {
+            const av = sortField === "hsCode" ? a.hsCode : sortField === "description" ? a.description : sortField === "unit" ? a.unit : sortField === "dutyRate" ? a.dutyRate : a.avgValue;
+            const bv = sortField === "hsCode" ? b.hsCode : sortField === "description" ? b.description : sortField === "unit" ? b.unit : sortField === "dutyRate" ? b.dutyRate : b.avgValue;
+            if (av == null && bv == null) return 0;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
+          });
+        } else {
+          filtered = [...filtered].sort((a, b) => a.hsCode.localeCompare(b.hsCode));
+        }
+
+        const totalFiltered = filtered.length;
+        const totalRecords = allRows.length;
+        const totalPages = Math.ceil(totalFiltered / params.pageSize);
+        const offset = (params.page - 1) * params.pageSize;
+        const pageRows = filtered.slice(offset, offset + params.pageSize);
+
+        const data = pageRows.map((row) => [
+          row.hsCode || "",
+          row.description || "",
+          row.unit || "",
+          row.dutyRate != null ? `${(row.dutyRate * 100).toFixed(0)}%` : "",
+          row.avgValue != null ? Number(row.avgValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "",
+        ]);
+
+        return res.json({
+          success: true,
+          data,
+          filteredRecords: totalFiltered,
+          totalRecords,
+          totalPages,
+          page: params.page,
+          pageSize: params.pageSize,
+        });
+      }
+
       const conditions: string[] = [];
       const values: any[] = [];
       let paramIdx = 1;
@@ -830,6 +907,19 @@ If a field is not visible or unclear, use reasonable defaults (empty string for 
       if (!field) {
         return res.status(400).json({ error: "Invalid column index" });
       }
+
+      if (!hasDatabase || !pool) {
+        const allRows = await storage.getProducts(0, Number.MAX_SAFE_INTEGER);
+        let values: string[] = [];
+        if (field === "hsCode") values = allRows.map((row) => row.hsCode || "");
+        else if (field === "description") values = allRows.map((row) => row.description || "");
+        else if (field === "unit") values = allRows.map((row) => row.unit || "");
+        else if (field === "dutyRate") values = allRows.filter((row) => row.dutyRate != null).map((row) => `${Math.round((row.dutyRate || 0) * 100)}%`);
+        else if (field === "avgValue") values = allRows.filter((row) => row.avgValue != null).map((row) => String(row.avgValue));
+        const uniqueValues = [...new Set(values)].sort().slice(0, 500);
+        return res.json({ values: uniqueValues });
+      }
+
       const dbCol = field === "hsCode" ? "hs_code" : field === "dutyRate" ? "duty_rate" : field === "avgValue" ? "avg_value" : field;
 
       let query: string;
