@@ -128,9 +128,8 @@ export default function Home() {
             <img
               src={logoImg}
               alt="الكمارك العراقية"
-              className="w-auto object-contain relative z-10"
+              className="w-auto h-[4.5rem] object-contain relative z-10"
               data-testid="img-logo-home"
-              style={{ height: '4.5rem' }}
             />
           </div>
           <div>
