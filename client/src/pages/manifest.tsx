@@ -458,7 +458,6 @@ export default function ManifestPage() {
             accept="image/*"
             multiple
             className="hidden"
-            placeholder="اختر صور المنفست"
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
               if (files.length > 0) addImages(files);
@@ -471,7 +470,6 @@ export default function ManifestPage() {
             accept="image/*"
             multiple
             className="hidden"
-            placeholder="أضف صور إضافية"
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
               if (files.length > 0) addImages(files);
